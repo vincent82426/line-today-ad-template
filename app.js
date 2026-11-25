@@ -228,7 +228,7 @@ function drawCard(context) {
   context.letterSpacing = ".56px";
   context.fillText(ellipsis(context, brand, width - brandX - left), brandX, 832);
 
-  context.font = `700 43px ${fontFamily}`;
+  context.font = `600 43px ${fontFamily}`;
   context.letterSpacing = "1.3px";
   for (const [index, line] of titleLines(context, title, textWidth - 8).entries()) {
     context.fillText(line, left, 908 + 61 * index);
@@ -239,7 +239,7 @@ function drawCard(context) {
 
   const buttonWidth = mute ? 638 : textWidth;
   roundedFill(context, left, 1086, buttonWidth, 69, 34.5, byId("button-color").value);
-  context.font = `700 28px ${fontFamily}`;
+  context.font = `600 28px ${fontFamily}`;
   context.letterSpacing = "0px";
   const buttonText = ellipsis(context, cta, buttonWidth - 24);
   context.fillStyle = "white";
@@ -570,7 +570,7 @@ byId("screenshot-mode").addEventListener("click", () => setMode("screenshot"));
 for (const id of ["show-safe", "mute", "button-color"]) byId(id).addEventListener("input", requestDraw);
 byId("save-screenshot").addEventListener("click", () => saveImage(true));
 byId("save-preview").addEventListener("click", () => saveImage(false));
-const fontsReady = document.fonts.load('700 43px "Source Han Sans TW"', "廣告")
+const fontsReady = document.fonts.load('600 43px "Source Han Sans TW"', "廣告")
   .catch(() => [])
   .then((faces) => {
     cardFontLoaded = faces.length > 0;
