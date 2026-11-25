@@ -7,8 +7,8 @@
   <meta name="description" content="上傳主圖、調整裁切與文案，預覽 LINE TODAY「看看」廣告卡片並下載螢幕截圖。">
   <title>LINE TODAY 上刊圖模板</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./styles.css?v=4">
-  <script src="./app.js?v=7" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=5">
+  <script src="./app.js?v=8" defer></script>
 </head>
 <body>
   <header class="masthead">
@@ -107,6 +107,7 @@
           <button type="button" class="button button-primary" id="save-screenshot">下載螢幕截圖 <span aria-hidden="true">↓</span></button>
         </div>
         <p class="export-note">螢幕截圖固定下載為 PNG（869 × 1884）。</p>
+        <p class="export-note" id="font-status" role="status" hidden>網頁字型暫時無法載入。預覽與下載會使用裝置的替代字型。</p>
         <p id="status" class="status" role="status" aria-live="polite"></p>
       </section>
     </section>

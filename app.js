@@ -7,7 +7,7 @@ const cardRadius = 35;
 const cardScale = card.width / asset.width;
 const visibleHeight = card.height / cardScale;
 const cardTop = (asset.height - visibleHeight) / 2;
-const fontFamily = '"Source Han Sans TW", sans-serif';
+let fontFamily = '"PingFang TC", "Microsoft JhengHei", sans-serif';
 const demo = {
   brand: "山野日常",
   title: "走進山裡找回慢生活",
@@ -46,7 +46,6 @@ let redrawPending = false;
 let imageRequest = 0;
 let logoRequest = 0;
 let drag = null;
-let cardFontLoaded = false;
 let screenshotFrame = null;
 
 function characters(value) {
@@ -204,11 +203,6 @@ function drawCard(context) {
   shade.addColorStop(1, "#06100f64");
   context.fillStyle = shade;
   context.fillRect(0, 660, width, height - 660);
-  if (!cardFontLoaded) {
-    context.restore();
-    return;
-  }
-
   context.fillStyle = "#ffffffb8";
   for (const x of [708, 722, 735]) {
     context.beginPath();
@@ -284,7 +278,7 @@ function drawScreenshotHeader(context) {
   const fill = context.createLinearGradient(0, top, 0, top + height);
   fill.addColorStop(0, "#fcfcfc");
   fill.addColorStop(1, "#fff");
-  context.font = '700 28px "PingFang TC", "Source Han Sans TW", sans-serif';
+  context.font = `700 28px "PingFang TC", ${fontFamily}`;
   context.textAlign = "center";
   context.strokeStyle = "#e3e3e3";
   context.lineWidth = 2;
@@ -536,7 +530,7 @@ async function saveImage(isScreenshot) {
   setStatus("正在製作圖片…");
   try {
     const format = isScreenshot ? "png" : byId("format").value;
-    if (!await fontsReady) throw new Error("思源黑體載入失敗，請重新整理後再試。");
+    await fontsReady;
     if (isScreenshot && !await screenshotReady) {
       throw new Error("螢幕截圖底圖載入失敗，請重新整理後再試。");
     }
@@ -632,15 +626,24 @@ for (const field of [screenshotTime, ...screenshotCategories]) {
 for (const id of ["show-safe", "mute", "button-color"]) byId(id).addEventListener("input", requestDraw);
 byId("save-screenshot").addEventListener("click", () => saveImage(true));
 byId("save-preview").addEventListener("click", () => saveImage(false));
-const fontsReady = document.fonts.load('600 43px "Source Han Sans TW"', "廣告")
-  .catch(() => [])
-  .then((faces) => {
-    cardFontLoaded = faces.length > 0;
-    if (!cardFontLoaded) setStatus("思源黑體載入失敗，請重新整理後再試。", true);
-    requestDraw();
-    return cardFontLoaded;
-  });
-const clockFontReady = document.fonts.load('600 37px "Screenshot Clock"', "0123456789:").catch(() => []);
+async function loadCardFonts() {
+  const faces = Array.from(document.fonts ?? []);
+  for (const family of ["Source Han Sans TW", "Taiwan Card Sans"]) {
+    const matches = faces.filter((face) => face.family.replace(/^["']|["']$/g, "") === family);
+    if (!matches.length) continue;
+    const loaded = await Promise.all(matches.map((face) => face.load())).catch(() => null);
+    if (loaded) {
+      fontFamily = `"${family}", sans-serif`;
+      requestDraw();
+      return;
+    }
+  }
+  const notice = byId("font-status");
+  if (notice) notice.hidden = false;
+}
+
+const fontsReady = loadCardFonts();
+const clockFontReady = document.fonts?.load('600 37px "Screenshot Clock"', "0123456789:").catch(() => []);
 const screenshotReady = Promise.all([loadImage("./assets/screenshot-frame.png"), clockFontReady]).then(([image]) => {
   screenshotFrame = image;
   requestDraw();

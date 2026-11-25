@@ -5,6 +5,18 @@
   font-display: swap;
 }
 @font-face {
+  font-family: "Taiwan Card Sans";
+  src: url("./assets/taiwan-card-sans-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Taiwan Card Sans";
+  src: url("./assets/taiwan-card-sans-600.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
   font-family: "Screenshot Clock";
   src: url("./assets/inter-clock.woff2") format("woff2");
   font-weight: 600;
