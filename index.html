@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="上傳主圖、調整裁切與文案，預覽 LINE TODAY「看看」廣告卡片並下載圖片。">
+  <title>LINE TODAY 上刊圖模板</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="wordmark"><span class="mark" aria-hidden="true"></span> 上刊圖工作室</div>
+      <a class="spec-link" href="https://tw.linebiz.com/download/line-guaranteed-ads/" target="_blank" rel="noreferrer">LINE 官方規格 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <main class="workspace">
+    <section class="editor" aria-labelledby="editor-title">
+      <div class="intro">
+        <p class="placement"><span aria-hidden="true"></span> LINE TODAY ／ 看看</p>
+        <h1 id="editor-title">上刊圖模板</h1>
+        <p>換上主圖與文案，即時檢查廣告卡片效果。</p>
+        <a class="mobile-preview-link" href="#preview-title">前往即時預覽 ↓</a>
+      </div>
+
+      <section class="editor-section" aria-labelledby="image-title">
+        <div class="section-heading">
+          <h2 id="image-title">廣告主圖</h2>
+          <span class="dimension">1080 × 1920</span>
+        </div>
+        <div class="upload" id="drop-image">
+          <div class="upload-content">
+            <div class="upload-symbol" aria-hidden="true">↑</div>
+            <div class="upload-name"><strong id="image-name">示範主圖</strong><small id="image-meta">可拖曳 JPG、PNG 或 WebP 到這裡</small></div>
+          </div>
+          <label class="button button-light file-button">
+            選擇圖片
+            <input id="image-file" type="file" accept="image/jpeg,image/png,image/webp" aria-label="選擇圖片">
+          </label>
+        </div>
+        <div class="crop">
+          <div class="crop-label"><label for="zoom">縮放</label><output id="zoom-value" for="zoom">100%</output></div>
+          <input id="zoom" type="range" min="100" max="300" step="1" value="100">
+          <button id="reset-crop" class="text-button" type="button">重設裁切</button>
+        </div>
+      </section>
+
+      <section class="editor-section" aria-labelledby="copy-title">
+        <div class="section-heading">
+          <h2 id="copy-title">廠商與文案</h2>
+          <button id="copy-text" class="text-button" type="button">複製文案</button>
+        </div>
+        <div class="brand-row">
+          <div class="field"><label for="brand">廠商名稱</label><input id="brand" maxlength="100" type="text"></div>
+          <div class="field logo-field">
+            <span id="logo-label">廠商 Logo</span>
+            <div class="logo-control">
+              <label id="drop-logo" class="button button-light file-button">
+                <canvas id="logo-thumb" width="24" height="24" aria-hidden="true"></canvas>
+                <span id="logo-action">更換</span>
+                <input id="logo-file" type="file" accept="image/jpeg,image/png,image/webp" aria-labelledby="logo-label logo-action">
+              </label>
+              <button class="icon-button" id="remove-logo" type="button" aria-label="移除 Logo" title="移除 Logo">×</button>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label"><label for="title">標題</label><output id="title-count" for="title"></output></div>
+          <input id="title" maxlength="240" type="text">
+        </div>
+        <div class="field">
+          <div class="field-label"><label for="body">內文</label><output id="body-count" for="body"></output></div>
+          <textarea id="body" rows="2" maxlength="500"></textarea>
+        </div>
+        <details class="options">
+          <summary>按鈕與卡片設定</summary>
+          <div class="options-grid">
+            <div class="field"><label for="cta">按鈕文字</label><input id="cta" maxlength="24" type="text"></div>
+            <div class="field"><label for="button-color">按鈕底色</label><input id="button-color" type="color" value="#06c755"></div>
+            <label class="check"><input id="mute" type="checkbox" checked> 顯示靜音圖示</label>
+          </div>
+        </details>
+        <p class="validation" id="copy-notes" hidden></p>
+      </section>
+
+      <section class="editor-section export" aria-labelledby="export-title">
+        <div class="section-heading"><h2 id="export-title">下載圖片</h2><label class="format">格式 <select id="format"><option value="jpeg">JPG</option><option value="png">PNG</option></select></label></div>
+        <div class="export-actions">
+          <button type="button" class="button button-primary" id="save-image">下載進稿圖 <span aria-hidden="true">↓</span></button>
+          <button type="button" class="button button-light" id="save-preview">下載卡片示意圖 <span aria-hidden="true">↓</span></button>
+        </div>
+        <p class="export-note">進稿圖是 9:16 主圖。示意圖會保留品牌與文案。</p>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+      </section>
+    </section>
+
+    <section class="preview" aria-labelledby="preview-title">
+      <div class="preview-header">
+        <div><p class="preview-label">LINE TODAY</p><h2 id="preview-title">即時預覽</h2></div>
+        <div class="mode" role="group" aria-label="預覽模式">
+          <button type="button" id="card-mode" aria-pressed="true">廣告卡片</button>
+          <button type="button" id="asset-mode" aria-pressed="false">9:16 主圖</button>
+        </div>
+      </div>
+      <div class="preview-stage">
+        <div class="art-frame" id="art-frame">
+          <canvas id="preview-canvas" width="798" height="1192" tabindex="0" role="img" aria-describedby="preview-help" aria-label="廣告卡片預覽">廣告素材預覽</canvas>
+          <div id="safe-overlay" class="safe-overlay" aria-hidden="true" hidden></div>
+        </div>
+      </div>
+      <div class="preview-footer">
+        <p id="preview-help"><span aria-hidden="true">✧</span> 拖曳或用方向鍵移動主圖</p>
+        <label class="check"><input id="show-safe" type="checkbox"> 顯示安全範圍</label>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <p>圖片在瀏覽器內處理。實際上刊樣式依 LINE 版本及裝置而異。</p>
+  </footer>
+</body>
+</html>
