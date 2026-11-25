@@ -82,8 +82,8 @@ function clamp(value, low, high) {
   return Math.min(high, Math.max(low, value));
 }
 
-function photoBounds(image, width, height, zoom, x = 0, y = 0) {
-  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight) * zoom;
+function photoBounds(image, width, height, zoom, x = 0, y = 0, coverHeight = height) {
+  const scale = Math.max(width / image.naturalWidth, coverHeight / image.naturalHeight) * zoom;
   const drawnWidth = image.naturalWidth * scale;
   const drawnHeight = image.naturalHeight * scale;
   return {
@@ -94,15 +94,22 @@ function photoBounds(image, width, height, zoom, x = 0, y = 0) {
   };
 }
 
-function fillPhoto(context, width, height) {
+function mainPhotoBounds() {
+  // Preserve the original 9:16 zoom while panning within the visible card.
+  return photoBounds(state.image, asset.width, visibleHeight, state.zoom, state.x, state.y, asset.height);
+}
+
+function fillPhoto(context) {
   context.fillStyle = state.image ? "#fff" : "#274136";
-  context.fillRect(0, 0, width, height);
+  context.fillRect(0, 0, card.width, card.height);
   if (!state.image) return;
-  const bounds = photoBounds(state.image, asset.width, asset.height, state.zoom, state.x, state.y);
-  const scale = width / asset.width;
-  const y = (asset.height - height / scale) / 2;
+  const bounds = mainPhotoBounds();
   context.imageSmoothingQuality = "high";
-  context.drawImage(state.image, bounds.left * scale, (bounds.top - y) * scale, bounds.width * scale, bounds.height * scale);
+  context.drawImage(
+    state.image,
+    bounds.left * cardScale, bounds.top * cardScale,
+    bounds.width * cardScale, bounds.height * cardScale,
+  );
 }
 
 function roundedPath(context, x, y, width, height, radius) {
@@ -184,7 +191,7 @@ function drawCard(context) {
   const { width, height } = card;
   const mute = byId("mute").checked;
   context.save();
-  fillPhoto(context, width, height);
+  fillPhoto(context);
 
   const shade = context.createLinearGradient(0, 660, 0, height);
   shade.addColorStop(0, "transparent");
@@ -424,10 +431,10 @@ function updateCopy() {
 
 function moveByPixels(dx, dy) {
   if (!state.image) return;
-  const bounds = photoBounds(state.image, asset.width, asset.height, state.zoom);
+  const bounds = mainPhotoBounds();
   const pixelRatio = canvas.width / (canvas.clientWidth * cardScale);
   const availableX = bounds.width - asset.width;
-  const availableY = bounds.height - asset.height;
+  const availableY = bounds.height - visibleHeight;
   if (availableX > .01) state.x = clamp(state.x + dx * pixelRatio * 2 / availableX, -1, 1);
   if (availableY > .01) state.y = clamp(state.y + dy * pixelRatio * 2 / availableY, -1, 1);
   requestDraw();
