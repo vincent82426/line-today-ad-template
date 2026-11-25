@@ -18,6 +18,8 @@ const demo = {
 
 const byId = (id) => document.getElementById(id);
 const canvas = byId("preview-canvas");
+const materialType = byId("material-type");
+const muteToggle = byId("mute");
 const imageFile = byId("image-file");
 const removeImageButton = byId("remove-image");
 const previewContext = canvas.getContext("2d");
@@ -215,7 +217,7 @@ function drawMute(context) {
 
 function drawCard(context) {
   const { width, height } = card;
-  const mute = byId("mute").checked;
+  const showMute = materialType.value === "video" && muteToggle.checked;
   context.save();
   fillPhoto(context);
 
@@ -273,7 +275,7 @@ function drawCard(context) {
   context.letterSpacing = ".3px";
   context.fillText(ellipsis(context, body, textWidth, "..."), left, 1038);
 
-  const buttonWidth = mute ? 638 : textWidth;
+  const buttonWidth = showMute ? 638 : textWidth;
   roundedFill(context, left, 1086, buttonWidth, 69, 34.5, byId("button-color").value);
   context.font = `600 28px ${fontFamily}`;
   context.letterSpacing = "0px";
@@ -281,7 +283,7 @@ function drawCard(context) {
   context.fillStyle = "white";
   context.textAlign = "center";
   context.fillText(buttonText, left + buttonWidth / 2, 1132);
-  if (mute) drawMute(context);
+  if (showMute) drawMute(context);
   context.restore();
 }
 
@@ -400,6 +402,11 @@ function setMode(mode) {
   byId("card-mode").setAttribute("aria-pressed", String(isCard));
   byId("screenshot-mode").setAttribute("aria-pressed", String(!isCard));
   if (!isCard) prepareScreenshotClock();
+  requestDraw();
+}
+
+function updateMaterialType() {
+  muteToggle.disabled = materialType.value === "image";
   requestDraw();
 }
 
@@ -715,7 +722,8 @@ for (const field of [screenshotTime, ...screenshotCategories]) {
     requestDraw();
   });
 }
-for (const id of ["show-safe", "mute", "button-color"]) byId(id).addEventListener("input", requestDraw);
+materialType.addEventListener("change", updateMaterialType);
+for (const control of [byId("show-safe"), muteToggle, byId("button-color")]) control.addEventListener("input", requestDraw);
 byId("save-screenshot").addEventListener("click", () => saveImage(true));
 byId("save-preview").addEventListener("click", () => saveImage(false));
 const fontsReady = loadCardFonts();
@@ -736,4 +744,5 @@ loadImage("./assets/demo.jpg").then((image) => {
   }
 });
 setMode("card");
+updateMaterialType();
 updateCopy();
