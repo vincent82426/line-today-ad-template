@@ -25,4 +25,4 @@
 
 - 示範照片來自 [Unsplash](https://images.unsplash.com/photo-1472396961693-142e6e269027)，適用 [Unsplash License](https://unsplash.com/license)。
 - Adobe [Source Han Sans](https://github.com/adobe-fonts/source-han-sans) 由網站載入，無須安裝。可變字型載入失敗時，會改用從同一字型製作的 Taiwan Card Sans（固定 400、600 字重）。若兩者都無法載入，預覽和下載會使用裝置的替代字型。兩套網站字型均採 SIL Open Font License，授權文件在 [assets/OFL-SourceHanSans.txt](assets/OFL-SourceHanSans.txt)。
-- 時鐘的跨平台替代字型取自 [Inter](https://github.com/rsms/inter) 的數字子集，授權文件在 [assets/OFL-Inter.txt](assets/OFL-Inter.txt)。
+- 時鐘的跨平台替代字型取自 [Inter](https://github.com/rsms/inter) 的數字子集，只在自訂時間時載入。授權文件在 [assets/OFL-Inter.txt](assets/OFL-Inter.txt)。

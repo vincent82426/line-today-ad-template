@@ -7,8 +7,8 @@
   <meta name="description" content="上傳主圖、調整裁切與文案，預覽 LINE TODAY「看看」廣告卡片並下載螢幕截圖。">
   <title>LINE TODAY 上刊圖模板</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./styles.css?v=5">
-  <script src="./app.js?v=8" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=6">
+  <script src="./app.js?v=9" defer></script>
 </head>
 <body>
   <header class="masthead">
@@ -57,7 +57,7 @@
         </div>
         <div class="brand-row">
           <div class="field"><label for="brand">廠商名稱</label><input id="brand" maxlength="100" type="text"></div>
-          <div class="field logo-field">
+          <div class="field">
             <span id="logo-label">廠商 Logo</span>
             <div class="logo-control">
               <label id="drop-logo" class="button button-light file-button">
@@ -100,7 +100,7 @@
         <p class="export-note">類別留空時顯示空白按鈕。超出畫面的部分會自然裁切。</p>
       </section>
 
-      <section class="editor-section export" aria-labelledby="export-title">
+      <section class="editor-section" aria-labelledby="export-title">
         <div class="section-heading"><h2 id="export-title">下載圖片</h2><label class="format">卡片格式 <select id="format"><option value="jpeg">JPG</option><option value="png">PNG</option></select></label></div>
         <div class="export-actions">
           <button type="button" class="button button-light" id="save-preview">下載卡片示意圖 <span aria-hidden="true">↓</span></button>

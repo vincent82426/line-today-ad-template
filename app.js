@@ -8,6 +8,7 @@ const cardScale = card.width / asset.width;
 const visibleHeight = card.height / cardScale;
 const cardTop = (asset.height - visibleHeight) / 2;
 let fontFamily = '"PingFang TC", "Microsoft JhengHei", sans-serif';
+let clockFontFamily = "sans-serif";
 const demo = {
   brand: "山野日常",
   title: "走進山裡找回慢生活",
@@ -47,6 +48,7 @@ let imageRequest = 0;
 let logoRequest = 0;
 let drag = null;
 let screenshotFrame = null;
+let clockFontReady;
 
 function characters(value) {
   return segmenter ? Array.from(segmenter.segment(value), (item) => item.segment) : Array.from(value);
@@ -65,10 +67,30 @@ function ellipsis(context, value, maxWidth, suffix = "…") {
   return units.join("").trimEnd() + suffix;
 }
 
+function titleUnits(context, value, maxWidth) {
+  const glyphs = characters(value);
+  const boundaries = new Map([[0, 0]]);
+  let offset = 0;
+  for (const [index, glyph] of glyphs.entries()) {
+    offset += glyph.length;
+    boundaries.set(offset, index + 1);
+  }
+  const units = [];
+  let next = 0;
+  for (const match of value.matchAll(/[A-Za-z0-9]+(?:[.'-][A-Za-z0-9]+)*/g)) {
+    const word = match[0];
+    const start = boundaries.get(match.index);
+    const end = boundaries.get(match.index + word.length);
+    if (start === undefined || end === undefined || context.measureText(word).width > maxWidth) continue;
+    units.push(...glyphs.slice(next, start), word);
+    next = end;
+  }
+  return units.concat(glyphs.slice(next));
+}
+
 function titleLines(context, value, maxWidth) {
   if (context.measureText(value).width <= maxWidth) return [value];
-  const pieces = value.match(/[A-Za-z0-9]+(?:[.'-][A-Za-z0-9]+)*|\s+|[^\s]/gu) ?? [];
-  const units = pieces.flatMap((piece) => context.measureText(piece).width > maxWidth ? characters(piece) : [piece]);
+  const units = titleUnits(context, value, maxWidth);
   let line = "";
   let index = 0;
   for (; index < units.length; index++) {
@@ -255,14 +277,19 @@ function drawCard(context) {
   context.restore();
 }
 
+function customScreenshotTime() {
+  const time = screenshotTime?.value ?? "";
+  return time !== "15:27" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : "";
+}
+
 function drawScreenshotHeader(context) {
   context.save();
   context.textBaseline = "alphabetic";
-  const time = screenshotTime?.value;
-  if (/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time) && time !== "15:27") {
+  const time = customScreenshotTime();
+  if (time) {
     context.fillStyle = "#fcfcfc";
     context.fillRect(99, 27, 120, 40);
-    context.font = '600 37px -apple-system, BlinkMacSystemFont, "Screenshot Clock", sans-serif';
+    context.font = `600 37px -apple-system, BlinkMacSystemFont, ${clockFontFamily}`;
     context.fillStyle = "#080808";
     context.textAlign = "center";
     context.fillText(time, 158.5, 61);
@@ -364,6 +391,7 @@ function setMode(mode) {
   byId("art-frame").dataset.mode = mode;
   byId("card-mode").setAttribute("aria-pressed", String(isCard));
   byId("screenshot-mode").setAttribute("aria-pressed", String(!isCard));
+  if (!isCard) prepareScreenshotClock();
   requestDraw();
 }
 
@@ -389,6 +417,48 @@ function loadImage(url) {
     image.onerror = reject;
     image.src = url;
   });
+}
+
+async function loadWebFont(family, timeout = 10_000) {
+  const faces = Array.from(document.fonts ?? []).filter(
+    (face) => face.family.replace(/^["']|["']$/g, "") === family,
+  );
+  if (!faces.length) return false;
+
+  let timer;
+  try {
+    return await Promise.race([
+      Promise.all(faces.map((face) => face.load())).then(() => true),
+      new Promise((resolve) => { timer = window.setTimeout(() => resolve(false), timeout); }),
+    ]);
+  } catch {
+    return false;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+async function loadCardFonts() {
+  for (const family of ["Source Han Sans TW", "Taiwan Card Sans"]) {
+    if (await loadWebFont(family)) {
+      fontFamily = `"${family}", sans-serif`;
+      requestDraw();
+      return;
+    }
+  }
+  const notice = byId("font-status");
+  if (notice) notice.hidden = false;
+}
+
+function prepareScreenshotClock() {
+  if (!customScreenshotTime()) return;
+  clockFontReady ??= loadWebFont("Screenshot Clock", 2_500).then((loaded) => {
+    if (loaded) {
+      clockFontFamily = '"Screenshot Clock", sans-serif';
+      requestDraw();
+    }
+  });
+  return clockFontReady;
 }
 
 function setMainImage(image, filename = "") {
@@ -531,9 +601,11 @@ async function saveImage(isScreenshot) {
   try {
     const format = isScreenshot ? "png" : byId("format").value;
     await fontsReady;
-    if (isScreenshot && !await screenshotReady) {
-      throw new Error("螢幕截圖底圖載入失敗，請重新整理後再試。");
+    if (isScreenshot) {
+      if (!await screenshotReady) throw new Error("螢幕截圖底圖載入失敗，請重新整理後再試。");
+      await prepareScreenshotClock();
     }
+    if (!state.image) throw new Error("請先選擇一張主圖。");
     const output = document.createElement("canvas");
     const size = isScreenshot ? screenshot : card;
     output.width = size.width;
@@ -562,6 +634,30 @@ async function saveImage(isScreenshot) {
   }
 }
 
+async function writeClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Some embedded browsers expose the API but reject writes.
+    }
+  }
+  const buffer = document.createElement("textarea");
+  buffer.value = text;
+  buffer.style.cssText = "position:fixed;left:0;top:0;opacity:0";
+  document.body.append(buffer);
+  try {
+    buffer.select();
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    buffer.remove();
+    byId("copy-text").focus();
+  }
+}
+
 async function copyText() {
   const text = [
     `廠商名稱：${fields.brand.value}`,
@@ -569,24 +665,8 @@ async function copyText() {
     `內文：${fields.body.value}`,
     `按鈕：${fields.cta.value}`,
   ].join("\n");
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-    } else {
-      const buffer = document.createElement("textarea");
-      buffer.value = text;
-      buffer.style.cssText = "position:fixed;left:0;top:0;opacity:0";
-      document.body.append(buffer);
-      buffer.select();
-      const copied = document.execCommand("copy");
-      buffer.remove();
-      byId("copy-text").focus();
-      if (!copied) throw new Error("failed to copy");
-    }
-    setStatus("已複製文案");
-  } catch {
-    setStatus("瀏覽器未允許複製，請手動選取欄位中的文字。", true);
-  }
+  const copied = await writeClipboard(text);
+  setStatus(copied ? "已複製文案" : "瀏覽器未允許複製，請手動選取欄位中的文字。", !copied);
 }
 
 for (const [key, field] of Object.entries(fields)) {
@@ -619,32 +699,19 @@ byId("card-mode").addEventListener("click", () => setMode("card"));
 byId("screenshot-mode").addEventListener("click", () => setMode("screenshot"));
 for (const field of [screenshotTime, ...screenshotCategories]) {
   field?.addEventListener("input", () => {
-    if (state.mode === "screenshot") requestDraw();
-    else setMode("screenshot");
+    if (state.mode !== "screenshot") {
+      setMode("screenshot");
+      return;
+    }
+    prepareScreenshotClock();
+    requestDraw();
   });
 }
 for (const id of ["show-safe", "mute", "button-color"]) byId(id).addEventListener("input", requestDraw);
 byId("save-screenshot").addEventListener("click", () => saveImage(true));
 byId("save-preview").addEventListener("click", () => saveImage(false));
-async function loadCardFonts() {
-  const faces = Array.from(document.fonts ?? []);
-  for (const family of ["Source Han Sans TW", "Taiwan Card Sans"]) {
-    const matches = faces.filter((face) => face.family.replace(/^["']|["']$/g, "") === family);
-    if (!matches.length) continue;
-    const loaded = await Promise.all(matches.map((face) => face.load())).catch(() => null);
-    if (loaded) {
-      fontFamily = `"${family}", sans-serif`;
-      requestDraw();
-      return;
-    }
-  }
-  const notice = byId("font-status");
-  if (notice) notice.hidden = false;
-}
-
 const fontsReady = loadCardFonts();
-const clockFontReady = document.fonts?.load('600 37px "Screenshot Clock"', "0123456789:").catch(() => []);
-const screenshotReady = Promise.all([loadImage("./assets/screenshot-frame.png"), clockFontReady]).then(([image]) => {
+const screenshotReady = loadImage("./assets/screenshot-frame.png").then((image) => {
   screenshotFrame = image;
   requestDraw();
   return true;

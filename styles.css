@@ -59,7 +59,6 @@ a { color: inherit; }
 .placement { display: flex; align-items: center; gap: 8px; color: var(--forest); }
 .placement span { width: 7px; height: 7px; border-radius: 50%; background: #2f9966; }
 .intro h1 { margin: 8px 0 9px; font-size: clamp(38px, 4.15vw, 64px); line-height: 1.15; letter-spacing: -.07em; font-weight: 850; }
-.intro > p:last-child { margin: 0; font-size: 14px; color: var(--muted); }
 .mobile-preview-link { display: none; }
 .editor-section { padding: 17px 0; border-top: 1px solid var(--border); }
 .section-heading, .field-label, .preview-header, .preview-footer, .logo-control { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
