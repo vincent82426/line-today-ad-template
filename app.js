@@ -27,8 +27,8 @@ const cardContext = cardSurface.getContext("2d", { alpha: false });
 const fields = Object.fromEntries(Object.keys(demo).map((key) => [key, byId(key)]));
 const screenshotTime = byId("screenshot-time");
 const screenshotCategories = [
-  { field: byId("screenshot-category-first"), left: 656, width: 68, backgroundX: 651 },
-  { field: byId("screenshot-category-second"), left: 797, width: 72, backgroundX: 793 },
+  byId("screenshot-category-first"),
+  byId("screenshot-category-second"),
 ];
 const segmenter = typeof Intl.Segmenter === "function"
   ? new Intl.Segmenter("zh-Hant", { granularity: "grapheme" })
@@ -274,15 +274,32 @@ function drawScreenshotHeader(context) {
     context.fillText(time, 158.5, 61);
   }
 
+  // Rebuild the row after 「分類」 using a clear gap from the original screenshot.
+  context.drawImage(screenshotFrame, 568, 263, 1, 88, 570, 263, screenshot.width - 570, 88);
+  const top = 269;
+  const height = 77;
+  const padding = 36;
+  const minWidth = 130;
+  const gap = 12;
+  const fill = context.createLinearGradient(0, top, 0, top + height);
+  fill.addColorStop(0, "#fcfcfc");
+  fill.addColorStop(1, "#fff");
   context.font = '700 28px "PingFang TC", "Source Han Sans TW", sans-serif';
-  context.fillStyle = "#191919";
-  context.textAlign = "left";
-  for (const { field, left, width, backgroundX } of screenshotCategories) {
+  context.textAlign = "center";
+  context.strokeStyle = "#e3e3e3";
+  context.lineWidth = 2;
+  let left = 574;
+  for (const field of screenshotCategories) {
     const name = singleLine(field?.value ?? "");
-    if (!name) continue;
-    // Stretch a clear stripe inside the same pill to retain its top-to-bottom shading.
-    context.drawImage(screenshotFrame, backgroundX, 289, 3, 35, left, 289, width, 35);
-    context.fillText(ellipsis(context, name, width - 5), left + 3, 317);
+    const width = Math.max(minWidth, Math.ceil(context.measureText(name).width) + padding * 2);
+    roundedPath(context, left, top, width, height, height / 2);
+    context.fillStyle = fill;
+    context.fill();
+    context.stroke();
+    context.fillStyle = "#191919";
+    context.fillText(name, left + width / 2, 317);
+    // Let the canvas edge clip the button and its unscaled text.
+    left += width + gap;
   }
   context.restore();
 }
@@ -606,7 +623,7 @@ byId("reset-crop").addEventListener("click", resetCrop);
 byId("copy-text").addEventListener("click", copyText);
 byId("card-mode").addEventListener("click", () => setMode("card"));
 byId("screenshot-mode").addEventListener("click", () => setMode("screenshot"));
-for (const field of [screenshotTime, ...screenshotCategories.map(({ field }) => field)]) {
+for (const field of [screenshotTime, ...screenshotCategories]) {
   field?.addEventListener("input", () => {
     if (state.mode === "screenshot") requestDraw();
     else setMode("screenshot");

@@ -8,7 +8,7 @@
   <title>LINE TODAY 上刊圖模板</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="./styles.css?v=4">
-  <script src="./app.js?v=6" defer></script>
+  <script src="./app.js?v=7" defer></script>
 </head>
 <body>
   <header class="masthead">
@@ -94,10 +94,10 @@
         </div>
         <div class="screenshot-fields">
           <div class="field"><label for="screenshot-time">上方時間</label><input id="screenshot-time" type="time" value="15:27"></div>
-          <div class="field"><label for="screenshot-category-first">第一個類別</label><input id="screenshot-category-first" type="text" placeholder="選戰" maxlength="40"></div>
-          <div class="field"><label for="screenshot-category-second">第二個類別</label><input id="screenshot-category-second" type="text" placeholder="金馬" maxlength="40"></div>
+          <div class="field"><label for="screenshot-category-first">第一個類別</label><input id="screenshot-category-first" type="text" maxlength="40"></div>
+          <div class="field"><label for="screenshot-category-second">第二個類別</label><input id="screenshot-category-second" type="text" maxlength="40"></div>
         </div>
-        <p class="export-note">留空保留原圖文字。類別名稱超出可見範圍時會加上省略號。</p>
+        <p class="export-note">類別留空時顯示空白按鈕。超出畫面的部分會自然裁切。</p>
       </section>
 
       <section class="editor-section export" aria-labelledby="export-title">
