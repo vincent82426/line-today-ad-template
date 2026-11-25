@@ -7,8 +7,8 @@
   <meta name="description" content="上傳主圖、調整裁切與文案，預覽 LINE TODAY「看看」廣告卡片並下載螢幕截圖。">
   <title>LINE TODAY 上刊圖模板</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./styles.css?v=3">
-  <script src="./app.js?v=5" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=4">
+  <script src="./app.js?v=6" defer></script>
 </head>
 <body>
   <header class="masthead">
@@ -86,6 +86,18 @@
           </div>
         </details>
         <p class="validation" id="copy-notes" hidden></p>
+      </section>
+
+      <section class="editor-section" aria-labelledby="screenshot-settings-title">
+        <div class="section-heading">
+          <h2 id="screenshot-settings-title">螢幕截圖設定</h2>
+        </div>
+        <div class="screenshot-fields">
+          <div class="field"><label for="screenshot-time">上方時間</label><input id="screenshot-time" type="time" value="15:27"></div>
+          <div class="field"><label for="screenshot-category-first">第一個類別</label><input id="screenshot-category-first" type="text" placeholder="選戰" maxlength="40"></div>
+          <div class="field"><label for="screenshot-category-second">第二個類別</label><input id="screenshot-category-second" type="text" placeholder="金馬" maxlength="40"></div>
+        </div>
+        <p class="export-note">留空保留原圖文字。類別名稱超出可見範圍時會加上省略號。</p>
       </section>
 
       <section class="editor-section export" aria-labelledby="export-title">

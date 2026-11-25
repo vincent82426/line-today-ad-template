@@ -4,6 +4,12 @@
   font-weight: 250 900;
   font-display: swap;
 }
+@font-face {
+  font-family: "Screenshot Clock";
+  src: url("./assets/inter-clock.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
 :root {
   --paper: #f6f6f1;
   --ink: #172923;
@@ -85,6 +91,9 @@ input[type="range"], input[type="checkbox"] { accent-color: #2e7655; }
 .options summary { font-size: 12px; font-weight: 650; color: var(--muted); }
 .options-grid { display: grid; grid-template-columns: minmax(0,1.5fr) minmax(0,1fr); gap: 5px 10px; }
 .options-grid .check { grid-column: 1 / -1; }
+.screenshot-fields { display: grid; grid-template-columns: 1.16fr 1fr 1fr; gap: 8px; }
+.screenshot-fields .field { margin-top: 0; }
+.screenshot-fields input[type="time"] { min-width: 0; padding-inline: 5px; }
 .field input[type="color"] { padding: 4px; }
 .format { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
 .format select { min-height: 31px; padding: 3px 5px; }
@@ -130,6 +139,10 @@ input[type="range"], input[type="checkbox"] { accent-color: #2e7655; }
   .mobile-preview-link { display: inline-block; margin-top: 8px; color: #215742; font-size: 13px; font-weight: 700; }
   .editor-section { padding-block: 13px; }
   .site-footer { margin-top: 17px; }
+}
+@media (max-width: 480px) {
+  .screenshot-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .screenshot-fields .field:first-child { grid-column: 1 / -1; }
 }
 @media (max-width: 365px) {
   .preview { padding: 11px; }

@@ -25,6 +25,11 @@ cardSurface.width = card.width;
 cardSurface.height = card.height;
 const cardContext = cardSurface.getContext("2d", { alpha: false });
 const fields = Object.fromEntries(Object.keys(demo).map((key) => [key, byId(key)]));
+const screenshotTime = byId("screenshot-time");
+const screenshotCategories = [
+  { field: byId("screenshot-category-first"), left: 656, width: 68, backgroundX: 651 },
+  { field: byId("screenshot-category-second"), left: 797, width: 72, backgroundX: 793 },
+];
 const segmenter = typeof Intl.Segmenter === "function"
   ? new Intl.Segmenter("zh-Hant", { granularity: "grapheme" })
   : null;
@@ -256,12 +261,39 @@ function drawCard(context) {
   context.restore();
 }
 
+function drawScreenshotHeader(context) {
+  context.save();
+  context.textBaseline = "alphabetic";
+  const time = screenshotTime?.value;
+  if (/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time) && time !== "15:27") {
+    context.fillStyle = "#fcfcfc";
+    context.fillRect(99, 27, 120, 40);
+    context.font = '600 37px -apple-system, BlinkMacSystemFont, "Screenshot Clock", sans-serif';
+    context.fillStyle = "#080808";
+    context.textAlign = "center";
+    context.fillText(time, 158.5, 61);
+  }
+
+  context.font = '700 28px "PingFang TC", "Source Han Sans TW", sans-serif';
+  context.fillStyle = "#191919";
+  context.textAlign = "left";
+  for (const { field, left, width, backgroundX } of screenshotCategories) {
+    const name = singleLine(field?.value ?? "");
+    if (!name) continue;
+    // Stretch a clear stripe inside the same pill to retain its top-to-bottom shading.
+    context.drawImage(screenshotFrame, backgroundX, 289, 3, 35, left, 289, width, 35);
+    context.fillText(ellipsis(context, name, width - 5), left + 3, 317);
+  }
+  context.restore();
+}
+
 function drawComposition(context, isScreenshot) {
   if (isScreenshot && !screenshotFrame) return;
   drawCard(cardContext);
   if (isScreenshot) {
     context.drawImage(cardSurface, screenshot.cardX, screenshot.cardY);
     context.drawImage(screenshotFrame, 0, 0);
+    drawScreenshotHeader(context);
     return;
   }
   context.save();
@@ -574,6 +606,12 @@ byId("reset-crop").addEventListener("click", resetCrop);
 byId("copy-text").addEventListener("click", copyText);
 byId("card-mode").addEventListener("click", () => setMode("card"));
 byId("screenshot-mode").addEventListener("click", () => setMode("screenshot"));
+for (const field of [screenshotTime, ...screenshotCategories.map(({ field }) => field)]) {
+  field?.addEventListener("input", () => {
+    if (state.mode === "screenshot") requestDraw();
+    else setMode("screenshot");
+  });
+}
 for (const id of ["show-safe", "mute", "button-color"]) byId(id).addEventListener("input", requestDraw);
 byId("save-screenshot").addEventListener("click", () => saveImage(true));
 byId("save-preview").addEventListener("click", () => saveImage(false));
@@ -585,7 +623,8 @@ const fontsReady = document.fonts.load('600 43px "Source Han Sans TW"', "廣告"
     requestDraw();
     return cardFontLoaded;
   });
-const screenshotReady = loadImage("./assets/screenshot-frame.png").then((image) => {
+const clockFontReady = document.fonts.load('600 37px "Screenshot Clock"', "0123456789:").catch(() => []);
+const screenshotReady = Promise.all([loadImage("./assets/screenshot-frame.png"), clockFontReady]).then(([image]) => {
   screenshotFrame = image;
   requestDraw();
   return true;
