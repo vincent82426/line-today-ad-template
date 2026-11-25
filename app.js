@@ -238,28 +238,36 @@ function drawCard(context) {
   const title = singleLine(fields.title.value);
   const body = singleLine(fields.body.value);
   const cta = singleLine(fields.cta.value);
+  const titleFont = `600 43px ${fontFamily}`;
+  const titleSpacing = "1.3px";
+  const titleLineHeight = 61;
+  context.font = titleFont;
+  context.letterSpacing = titleSpacing;
+  const lines = titleLines(context, title, textWidth - 8);
+  // Keep the last title line anchored above the body and move the advertiser row with it.
+  const titleOffset = (2 - lines.length) * titleLineHeight;
   context.textAlign = "left";
   context.textBaseline = "alphabetic";
   context.fillStyle = "white";
   context.strokeStyle = "#ffffffe0";
   context.lineWidth = 1.3;
-  roundedPath(context, left, 806, 48, 31, 6);
+  roundedPath(context, left, 806 + titleOffset, 48, 31, 6);
   context.stroke();
   context.font = `300 19px ${fontFamily}`;
   context.letterSpacing = ".38px";
-  context.fillText("廣告", left + 5, 827);
+  context.fillText("廣告", left + 5, 827 + titleOffset);
 
-  drawLogo(context, 96, 804, 36);
+  drawLogo(context, 96, 804 + titleOffset, 36);
   const brandX = 145;
   context.fillStyle = "white";
   context.font = `400 28px ${fontFamily}`;
   context.letterSpacing = ".56px";
-  context.fillText(ellipsis(context, brand, width - brandX - left), brandX, 832);
+  context.fillText(ellipsis(context, brand, width - brandX - left), brandX, 832 + titleOffset);
 
-  context.font = `600 43px ${fontFamily}`;
-  context.letterSpacing = "1.3px";
-  for (const [index, line] of titleLines(context, title, textWidth - 8).entries()) {
-    context.fillText(line, left, 908 + 61 * index);
+  context.font = titleFont;
+  context.letterSpacing = titleSpacing;
+  for (const [index, line] of lines.entries()) {
+    context.fillText(line, left, 908 + titleOffset + titleLineHeight * index);
   }
   context.font = `400 32px ${fontFamily}`;
   context.letterSpacing = ".3px";

@@ -7,8 +7,8 @@
   <meta name="description" content="上傳主圖、調整裁切與文案，預覽 LINE TODAY「看看」廣告卡片並下載螢幕截圖。">
   <title>LINE TODAY 上刊圖模板</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./styles.css?v=6">
-  <script src="./app.js?v=9" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=7">
+  <script src="./app.js?v=10" defer></script>
 </head>
 <body>
   <header class="masthead">
@@ -77,10 +77,13 @@
           <div class="field-label"><label for="body">內文</label><output id="body-count" for="body"></output></div>
           <textarea id="body" rows="2" maxlength="500"></textarea>
         </div>
+        <div class="field">
+          <label for="cta">CTA 按鈕文字</label>
+          <input id="cta" maxlength="24" type="text">
+        </div>
         <details class="options">
           <summary>按鈕與卡片設定</summary>
           <div class="options-grid">
-            <div class="field"><label for="cta">按鈕文字</label><input id="cta" maxlength="24" type="text"></div>
             <div class="field"><label for="button-color">按鈕底色</label><input id="button-color" type="color" value="#06c755"></div>
             <label class="check"><input id="mute" type="checkbox" checked> 顯示靜音圖示</label>
           </div>
