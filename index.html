@@ -7,8 +7,8 @@
   <meta name="description" content="上傳主圖、調整裁切與文案，預覽 LINE TODAY「看看」廣告卡片並下載螢幕截圖。">
   <title>LINE TODAY 上刊圖模板</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./styles.css">
-  <script src="./app.js" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=3">
+  <script src="./app.js?v=3" defer></script>
 </head>
 <body>
   <header class="masthead">
@@ -35,10 +35,13 @@
             <div class="upload-symbol" aria-hidden="true">↑</div>
             <div class="upload-name"><strong id="image-name">示範主圖</strong><small id="image-meta">可拖曳 JPG、PNG 或 WebP 到這裡</small></div>
           </div>
-          <label class="button button-light file-button">
-            選擇圖片
-            <input id="image-file" type="file" accept="image/jpeg,image/png,image/webp" aria-label="選擇圖片">
-          </label>
+          <div class="upload-actions">
+            <label class="button button-light file-button">
+              選擇圖片
+              <input id="image-file" type="file" accept="image/jpeg,image/png,image/webp" aria-label="選擇圖片">
+            </label>
+            <button class="icon-button" id="remove-image" type="button" aria-label="移除主圖" title="移除主圖" hidden>×</button>
+          </div>
         </div>
         <div class="crop">
           <div class="crop-label"><label for="zoom">縮放</label><output id="zoom-value" for="zoom">100%</output></div>

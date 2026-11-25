@@ -17,6 +17,8 @@ const demo = {
 
 const byId = (id) => document.getElementById(id);
 const canvas = byId("preview-canvas");
+const imageFile = byId("image-file");
+const removeImageButton = byId("remove-image");
 const previewContext = canvas.getContext("2d");
 const cardSurface = document.createElement("canvas");
 cardSurface.width = card.width;
@@ -28,7 +30,7 @@ const segmenter = typeof Intl.Segmenter === "function"
   : null;
 
 const state = {
-  image: null,
+  image: undefined, // The demo may load until the user chooses or clears an image.
   logo: "demo",
   zoom: 1,
   x: 0,
@@ -103,9 +105,24 @@ function fillPhoto(context, width, height) {
   context.drawImage(state.image, bounds.left * scale, (bounds.top - y) * scale, bounds.width * scale, bounds.height * scale);
 }
 
-function roundedFill(context, x, y, width, height, radius, color) {
+function roundedPath(context, x, y, width, height, radius) {
   context.beginPath();
-  context.roundRect(x, y, width, height, radius);
+  if (typeof context.roundRect === "function") {
+    context.roundRect(x, y, width, height, radius);
+    return;
+  }
+  const right = x + width;
+  const bottom = y + height;
+  context.moveTo(x + radius, y);
+  context.arcTo(right, y, right, bottom, radius);
+  context.arcTo(right, bottom, x, bottom, radius);
+  context.arcTo(x, bottom, x, y, radius);
+  context.arcTo(x, y, right, y, radius);
+  context.closePath();
+}
+
+function roundedFill(context, x, y, width, height, radius, color) {
+  roundedPath(context, x, y, width, height, radius);
   context.fillStyle = color;
   context.fill();
 }
@@ -198,8 +215,7 @@ function drawCard(context) {
   context.fillStyle = "white";
   context.strokeStyle = "#ffffffe0";
   context.lineWidth = 1.3;
-  context.beginPath();
-  context.roundRect(left, 806, 48, 31, 6);
+  roundedPath(context, left, 806, 48, 31, 6);
   context.stroke();
   context.font = `300 19px ${fontFamily}`;
   context.letterSpacing = ".38px";
@@ -242,8 +258,7 @@ function drawComposition(context, isScreenshot) {
     return;
   }
   context.save();
-  context.beginPath();
-  context.roundRect(0, 0, card.width, card.height, cardRadius);
+  roundedPath(context, 0, 0, card.width, card.height, cardRadius);
   context.clip();
   context.drawImage(cardSurface, 0, 0);
   context.restore();
@@ -257,8 +272,7 @@ function drawSafeArea(context, isScreenshot) {
   const height = 1152 * cardScale;
   context.save();
   if (isScreenshot) context.translate(screenshot.cardX, screenshot.cardY);
-  context.beginPath();
-  context.roundRect(0, 0, card.width, card.height, cardRadius);
+  roundedPath(context, 0, 0, card.width, card.height, cardRadius);
   context.clip();
   context.beginPath();
   context.rect(0, 0, card.width, card.height);
@@ -318,11 +332,26 @@ function resetCrop() {
   requestDraw();
 }
 
-async function loadImage(url) {
-  const image = new Image();
-  image.src = url;
-  await image.decode();
-  return image;
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = url;
+  });
+}
+
+function setMainImage(image, filename = "") {
+  state.image = image;
+  const name = byId("image-name");
+  name.textContent = filename || (image ? "示範主圖" : "尚未選擇圖片");
+  name.title = filename;
+  byId("image-meta").textContent = filename
+    ? `${image.naturalWidth} × ${image.naturalHeight} px`
+    : "可拖曳 JPG、PNG 或 WebP 到這裡";
+  // The previous HTML can still be cached without the new remove button.
+  if (removeImageButton) removeImageButton.hidden = !image;
+  resetCrop();
 }
 
 async function handleImage(file, target) {
@@ -337,19 +366,16 @@ async function handleImage(file, target) {
     }
     const image = await loadImage(url);
     if (!isCurrent()) return;
-    state[target] = image;
     if (isLogo) {
+      state.logo = image;
       byId("logo-action").textContent = "更換";
       byId("remove-logo").hidden = false;
       setStatus(`已更換 Logo（${file.name}）`);
+      requestDraw();
     } else {
-      byId("image-name").textContent = file.name;
-      byId("image-name").title = file.name;
-      byId("image-meta").textContent = `${image.naturalWidth} × ${image.naturalHeight} px`;
-      resetCrop();
+      setMainImage(image, file.name);
       setStatus("已套用主圖");
     }
-    requestDraw();
   } catch {
     if (isCurrent()) setStatus("這個檔案無法讀取。請選擇 JPG、PNG 或 WebP 圖片。", true);
   } finally {
@@ -517,7 +543,13 @@ for (const [key, field] of Object.entries(fields)) {
   field.value = demo[key];
   field.addEventListener("input", updateCopy);
 }
-setupUpload(byId("image-file"), byId("drop-image"), "image");
+setupUpload(imageFile, byId("drop-image"), "image");
+removeImageButton?.addEventListener("click", () => {
+  imageRequest++;
+  setMainImage(null);
+  imageFile.focus();
+  setStatus("已移除主圖");
+});
 setupUpload(byId("logo-file"), byId("drop-logo"), "logo");
 byId("remove-logo").addEventListener("click", () => {
   logoRequest++;
@@ -555,10 +587,12 @@ const screenshotReady = loadImage("./assets/screenshot-frame.png").then((image) 
   return false;
 });
 loadImage("./assets/demo.jpg").then((image) => {
-  if (!state.image) state.image = image;
-  requestDraw();
+  if (state.image === undefined) setMainImage(image);
 }).catch(() => {
-  if (!state.image) setStatus("示範圖片未載入。你仍可上傳自己的主圖。", true);
+  if (state.image === undefined) {
+    setMainImage(null);
+    setStatus("示範圖片未載入。你仍可上傳自己的主圖。", true);
+  }
 });
 setMode("card");
 updateCopy();

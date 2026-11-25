@@ -52,6 +52,7 @@ output, .format { color: var(--muted); font: 12px var(--mono), var(--font); }
 .upload { display: flex; align-items: center; justify-content: space-between; border: 1px dashed #98ada0; border-radius: 12px; background: #edf2e8; gap: 8px; padding: 11px; }
 .upload.is-dragging, .file-button.is-dragging { border-color: #156540; background: var(--lime); }
 .upload-content { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.upload-actions { display: flex; align-items: center; gap: 4px; flex: none; }
 .upload-symbol { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 8px; background: #dbe7d9; color: var(--forest); font-size: 22px; flex: none; }
 .upload-name { min-width: 0; }
 .upload-name strong, .upload-name small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
