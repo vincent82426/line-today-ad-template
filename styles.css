@@ -1,7 +1,7 @@
 @font-face {
-  font-family: "Noto Template";
-  src: url("./assets/noto-sans-tc.woff2") format("woff2");
-  font-weight: 100 900;
+  font-family: "Source Han Sans TW";
+  src: url("./assets/source-han-sans-tw.woff2") format("woff2");
+  font-weight: 250 900;
   font-display: swap;
 }
 :root {
@@ -12,7 +12,7 @@
   --forest: #183d30;
   --lime: #e1efab;
   --dark: #182923;
-  --font: "Noto Template", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --font: "Source Han Sans TW", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
   --mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
   font-family: var(--font);
   color: var(--ink);
@@ -48,7 +48,7 @@ a { color: inherit; }
 h2 { margin: 0; }
 .section-heading { margin-bottom: 11px; }
 .section-heading h2 { font-size: 16px; font-weight: 750; }
-.dimension, output, .format { color: var(--muted); font: 12px var(--mono), var(--font); }
+output, .format { color: var(--muted); font: 12px var(--mono), var(--font); }
 .upload { display: flex; align-items: center; justify-content: space-between; border: 1px dashed #98ada0; border-radius: 12px; background: #edf2e8; gap: 8px; padding: 11px; }
 .upload.is-dragging, .file-button.is-dragging { border-color: #156540; background: var(--lime); }
 .upload-content { display: flex; align-items: center; gap: 11px; min-width: 0; }
@@ -102,12 +102,10 @@ input[type="range"], input[type="checkbox"] { accent-color: #2e7655; }
 .preview-stage { position: relative; display: grid; place-items: center; padding: 16px 20px; min-height: 586px; border: 1px solid #3a5147; border-radius: 14px; overflow: hidden; background: radial-gradient(circle at 50% 30%, #355042 0, #233a30 48%, #1b3028 100%); }
 .preview-stage::before { content: ""; position: absolute; inset: 0; background: radial-gradient(#d5e4d3 1px, transparent 1px); background-size: 16px 16px; opacity: .12; pointer-events: none; }
 .art-frame { width: min(100%, 355px); position: relative; display: grid; isolation: isolate; margin: 0; overflow: hidden; border-radius: 15px; box-shadow: 0 18px 35px #08140e8c; }
-.art-frame[data-mode="asset"] { width: min(100%, 303px); border-radius: 4px; }
-#preview-canvas { display: block; width: 100%; height: auto; aspect-ratio: 798 / 1192; cursor: grab; touch-action: none; }
-.art-frame[data-mode="asset"] #preview-canvas { aspect-ratio: 9 / 16; }
+.art-frame[data-mode="screenshot"] { width: min(100%, 245px); border-radius: 4px; }
+#preview-canvas { display: block; width: 100%; height: auto; cursor: grab; touch-action: none; }
 #preview-canvas:focus-visible { outline-offset: -4px; }
 #preview-canvas:active { cursor: grabbing; }
-.safe-overlay { position: absolute; pointer-events: none; inset: var(--guide-inset); border: 1px dashed #f3ffb8; box-shadow: 0 0 0 600px #11241966; }
 .preview-footer { margin-top: 13px; color: #d7e4d9; font-size: 12px; }
 .preview-footer p { margin: 0; }
 .preview-footer p span { color: var(--lime); }

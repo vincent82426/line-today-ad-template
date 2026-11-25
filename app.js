@@ -2,11 +2,12 @@
 
 const asset = { width: 1080, height: 1920 };
 const card = { width: 798, height: 1192 };
-const maxBytes = 950_000;
+const screenshot = { width: 869, height: 1884, cardX: 36, cardY: 387 };
+const cardRadius = 35;
 const cardScale = card.width / asset.width;
 const visibleHeight = card.height / cardScale;
 const cardTop = (asset.height - visibleHeight) / 2;
-const fontFamily = '"Noto Template", "PingFang TC", "Microsoft JhengHei", sans-serif';
+const fontFamily = '"Source Han Sans TW", sans-serif';
 const demo = {
   brand: "山野日常",
   title: "走進山裡找回慢生活",
@@ -17,7 +18,10 @@ const demo = {
 const byId = (id) => document.getElementById(id);
 const canvas = byId("preview-canvas");
 const previewContext = canvas.getContext("2d");
-const guide = byId("safe-overlay");
+const cardSurface = document.createElement("canvas");
+cardSurface.width = card.width;
+cardSurface.height = card.height;
+const cardContext = cardSurface.getContext("2d", { alpha: false });
 const fields = Object.fromEntries(Object.keys(demo).map((key) => [key, byId(key)]));
 const segmenter = typeof Intl.Segmenter === "function"
   ? new Intl.Segmenter("zh-Hant", { granularity: "grapheme" })
@@ -35,7 +39,8 @@ let redrawPending = false;
 let imageRequest = 0;
 let logoRequest = 0;
 let drag = null;
-let fontsReady;
+let cardFontLoaded = false;
+let screenshotFrame = null;
 
 function characters(value) {
   return segmenter ? Array.from(segmenter.segment(value), (item) => item.segment) : Array.from(value);
@@ -45,13 +50,13 @@ function singleLine(value) {
   return value.replace(/\s+/gu, " ").trim();
 }
 
-function ellipsis(context, value, maxWidth) {
+function ellipsis(context, value, maxWidth, suffix = "…") {
   if (context.measureText(value).width <= maxWidth) return value;
   const units = characters(value);
-  while (units.length && context.measureText(units.join("").trimEnd() + "…").width > maxWidth) {
+  while (units.length && context.measureText(units.join("").trimEnd() + suffix).width > maxWidth) {
     units.pop();
   }
-  return units.join("").trimEnd() + "…";
+  return units.join("").trimEnd() + suffix;
 }
 
 function titleLines(context, value, maxWidth) {
@@ -158,15 +163,10 @@ function drawMute(context) {
   context.restore();
 }
 
-function drawCard(context, round) {
+function drawCard(context) {
   const { width, height } = card;
   const mute = byId("mute").checked;
   context.save();
-  if (round) {
-    context.beginPath();
-    context.roundRect(0, 0, width, height, 35);
-    context.clip();
-  }
   fillPhoto(context, width, height);
 
   const shade = context.createLinearGradient(0, 660, 0, height);
@@ -175,6 +175,17 @@ function drawCard(context, round) {
   shade.addColorStop(1, "#06100f64");
   context.fillStyle = shade;
   context.fillRect(0, 660, width, height - 660);
+  if (!cardFontLoaded) {
+    context.restore();
+    return;
+  }
+
+  context.fillStyle = "#ffffffb8";
+  for (const x of [708, 722, 735]) {
+    context.beginPath();
+    context.arc(x, 81, 3.3, 0, 2 * Math.PI);
+    context.fill();
+  }
 
   const left = 35;
   const textWidth = width - left * 2;
@@ -182,53 +193,83 @@ function drawCard(context, round) {
   const title = singleLine(fields.title.value);
   const body = singleLine(fields.body.value);
   const cta = singleLine(fields.cta.value);
-  context.font = `900 44px ${fontFamily}`;
-  const lines = titleLines(context, title, textWidth);
-  const lineOffset = lines.length === 1 ? 60 : 0;
   context.textAlign = "left";
   context.textBaseline = "alphabetic";
   context.fillStyle = "white";
   context.strokeStyle = "#ffffffe0";
   context.lineWidth = 1.3;
   context.beginPath();
-  context.roundRect(left, 806 + lineOffset, 48, 31, 6);
+  context.roundRect(left, 806, 48, 31, 6);
   context.stroke();
-  context.font = `350 18px ${fontFamily}`;
-  context.fillText("廣告", left + 6, 828 + lineOffset);
+  context.font = `300 19px ${fontFamily}`;
+  context.letterSpacing = ".38px";
+  context.fillText("廣告", left + 5, 827);
 
-  drawLogo(context, 96, 804 + lineOffset, 36);
-  const brandX = state.logo ? 147 : 96;
+  drawLogo(context, 96, 804, 36);
+  const brandX = 145;
   context.fillStyle = "white";
-  context.font = `400 27px ${fontFamily}`;
-  context.fillText(ellipsis(context, brand, width - brandX - left), brandX, 832 + lineOffset);
+  context.font = `400 28px ${fontFamily}`;
+  context.letterSpacing = ".56px";
+  context.fillText(ellipsis(context, brand, width - brandX - left), brandX, 832);
 
-  context.font = `900 44px ${fontFamily}`;
-  for (const [index, line] of lines.entries()) {
-    context.fillText(line, left, 909 + lineOffset + 60 * index);
+  context.font = `700 43px ${fontFamily}`;
+  context.letterSpacing = "1.3px";
+  for (const [index, line] of titleLines(context, title, textWidth - 8).entries()) {
+    context.fillText(line, left, 908 + 61 * index);
   }
-  context.font = `400 31px ${fontFamily}`;
-  context.fillText(ellipsis(context, body, textWidth), left, 1038);
+  context.font = `400 32px ${fontFamily}`;
+  context.letterSpacing = ".3px";
+  context.fillText(ellipsis(context, body, textWidth, "..."), left, 1038);
 
   const buttonWidth = mute ? 638 : textWidth;
   roundedFill(context, left, 1086, buttonWidth, 69, 34.5, byId("button-color").value);
-  context.font = `750 27px ${fontFamily}`;
+  context.font = `700 28px ${fontFamily}`;
+  context.letterSpacing = "0px";
   const buttonText = ellipsis(context, cta, buttonWidth - 24);
   context.fillStyle = "white";
   context.textAlign = "center";
-  context.fillText(buttonText, left + buttonWidth / 2, 1131);
+  context.fillText(buttonText, left + buttonWidth / 2, 1132);
   if (mute) drawMute(context);
   context.restore();
 }
 
-function updateGuide() {
-  // The LINE guide centers an 888 × 1152 reference area on the 1080 × 1920 artwork.
-  const top = 384;
-  const bottom = 1536;
-  const height = state.mode === "asset" ? asset.height : visibleHeight;
-  const offset = state.mode === "asset" ? 0 : cardTop;
-  const horizontal = 96 / asset.width * 100;
-  guide.style.setProperty("--guide-inset", `${(top - offset) / height * 100}% ${horizontal}% ${(offset + height - bottom) / height * 100}%`);
-  guide.hidden = !byId("show-safe").checked;
+function drawComposition(context, isScreenshot) {
+  if (isScreenshot && !screenshotFrame) return;
+  drawCard(cardContext);
+  if (isScreenshot) {
+    context.drawImage(cardSurface, screenshot.cardX, screenshot.cardY);
+    context.drawImage(screenshotFrame, 0, 0);
+    return;
+  }
+  context.save();
+  context.beginPath();
+  context.roundRect(0, 0, card.width, card.height, cardRadius);
+  context.clip();
+  context.drawImage(cardSurface, 0, 0);
+  context.restore();
+}
+
+function drawSafeArea(context, isScreenshot) {
+  // Project the centered 888 × 1152 design safe area into the visible card.
+  const x = 96 * cardScale;
+  const y = (384 - cardTop) * cardScale;
+  const width = 888 * cardScale;
+  const height = 1152 * cardScale;
+  context.save();
+  if (isScreenshot) context.translate(screenshot.cardX, screenshot.cardY);
+  context.beginPath();
+  context.roundRect(0, 0, card.width, card.height, cardRadius);
+  context.clip();
+  context.beginPath();
+  context.rect(0, 0, card.width, card.height);
+  context.rect(x, y, width, height);
+  context.fillStyle = "#11241966";
+  context.fill("evenodd");
+  context.strokeStyle = "#f3ffb8";
+  context.lineWidth = 2;
+  context.setLineDash([8, 5]);
+  context.strokeRect(x, y, width, height);
+  context.restore();
 }
 
 function requestDraw() {
@@ -237,9 +278,11 @@ function requestDraw() {
   requestAnimationFrame(() => {
     redrawPending = false;
     previewContext.clearRect(0, 0, canvas.width, canvas.height);
-    if (state.mode === "card") drawCard(previewContext, true);
-    else fillPhoto(previewContext, asset.width, asset.height);
-    updateGuide();
+    const isScreenshot = state.mode === "screenshot";
+    drawComposition(previewContext, isScreenshot);
+    if (byId("show-safe").checked && (!isScreenshot || screenshotFrame)) {
+      drawSafeArea(previewContext, isScreenshot);
+    }
 
     const logoContext = byId("logo-thumb").getContext("2d");
     logoContext.clearRect(0, 0, 24, 24);
@@ -250,13 +293,13 @@ function requestDraw() {
 function setMode(mode) {
   state.mode = mode;
   const isCard = mode === "card";
-  const size = isCard ? card : asset;
+  const size = isCard ? card : screenshot;
   canvas.width = size.width;
   canvas.height = size.height;
-  canvas.setAttribute("aria-label", isCard ? "廣告卡片預覽，可用方向鍵移動主圖" : "9:16 主圖預覽，可用方向鍵移動主圖");
+  canvas.setAttribute("aria-label", isCard ? "廣告卡片預覽，可用方向鍵移動主圖" : "螢幕截圖預覽，可用方向鍵移動卡片主圖");
   byId("art-frame").dataset.mode = mode;
   byId("card-mode").setAttribute("aria-pressed", String(isCard));
-  byId("asset-mode").setAttribute("aria-pressed", String(!isCard));
+  byId("screenshot-mode").setAttribute("aria-pressed", String(!isCard));
   requestDraw();
 }
 
@@ -353,10 +396,10 @@ function updateCopy() {
   requestDraw();
 }
 
-function moveByPixels(dx, dy, frameWidth) {
+function moveByPixels(dx, dy) {
   if (!state.image) return;
   const bounds = photoBounds(state.image, asset.width, asset.height, state.zoom);
-  const pixelRatio = asset.width / frameWidth;
+  const pixelRatio = canvas.width / (canvas.clientWidth * cardScale);
   const availableX = bounds.width - asset.width;
   const availableY = bounds.height - asset.height;
   if (availableX > .01) state.x = clamp(state.x + dx * pixelRatio * 2 / availableX, -1, 1);
@@ -366,12 +409,19 @@ function moveByPixels(dx, dy, frameWidth) {
 
 canvas.addEventListener("pointerdown", (event) => {
   if (!event.isPrimary || event.button !== 0) return;
+  if (state.mode === "screenshot") {
+    const bounds = canvas.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) * screenshot.width / bounds.width;
+    const y = (event.clientY - bounds.top) * screenshot.height / bounds.height;
+    if (x < screenshot.cardX || x >= screenshot.cardX + card.width ||
+        y < screenshot.cardY || y >= screenshot.cardY + card.height) return;
+  }
   drag = { id: event.pointerId, x: event.clientX, y: event.clientY };
   canvas.setPointerCapture(event.pointerId);
 });
 canvas.addEventListener("pointermove", (event) => {
   if (drag?.id !== event.pointerId) return;
-  moveByPixels(event.clientX - drag.x, event.clientY - drag.y, canvas.clientWidth);
+  moveByPixels(event.clientX - drag.x, event.clientY - drag.y);
   drag.x = event.clientX;
   drag.y = event.clientY;
 });
@@ -382,7 +432,7 @@ canvas.addEventListener("keydown", (event) => {
   if (!direction) return;
   event.preventDefault();
   const step = event.shiftKey ? 25 : 6;
-  moveByPixels(direction[0] * step, direction[1] * step, canvas.clientWidth);
+  moveByPixels(direction[0] * step, direction[1] * step);
 });
 
 function encode(output, format, quality) {
@@ -394,48 +444,36 @@ function encode(output, format, quality) {
   });
 }
 
-async function prepareExport(output, format, isPreview) {
-  let blob = await encode(output, format, .94);
-  if (isPreview || blob.size <= maxBytes) return blob;
-  if (format === "png") throw new Error("此 PNG 超過進稿上限 950 KB。請切換成 JPG 後再下載。");
-  for (const quality of [.88, .82, .75, .65, .53, .40, .25, .1]) {
-    blob = await encode(output, format, quality);
-    if (blob.size <= maxBytes) return blob;
-  }
-  throw new Error("JPG 壓縮後仍超過 950 KB，請換一張圖片。");
-}
-
-async function saveImage(isPreview) {
+async function saveImage(isScreenshot) {
   if (!state.image) {
     setStatus("請先選擇一張主圖。", true);
     return;
   }
-  const buttons = [byId("save-image"), byId("save-preview")];
+  const buttons = [byId("save-screenshot"), byId("save-preview")];
   buttons.forEach((button) => { button.disabled = true; });
   setStatus("正在製作圖片…");
   try {
+    const format = isScreenshot ? "png" : byId("format").value;
+    if (!await fontsReady) throw new Error("思源黑體載入失敗，請重新整理後再試。");
+    if (isScreenshot && !await screenshotReady) {
+      throw new Error("螢幕截圖底圖載入失敗，請重新整理後再試。");
+    }
     const output = document.createElement("canvas");
-    const size = isPreview ? card : asset;
-    const format = byId("format").value;
+    const size = isScreenshot ? screenshot : card;
     output.width = size.width;
     output.height = size.height;
-    const context = output.getContext("2d", { alpha: isPreview && format === "png" });
-    if (isPreview) {
-      await fontsReady;
-      if (format === "jpeg") {
-        context.fillStyle = "#fff";
-        context.fillRect(0, 0, size.width, size.height);
-      }
-      drawCard(context, true);
-    } else {
-      fillPhoto(context, size.width, size.height);
+    const context = output.getContext("2d", { alpha: !isScreenshot && format === "png" });
+    if (format === "jpeg") {
+      context.fillStyle = "#fff";
+      context.fillRect(0, 0, size.width, size.height);
     }
-    const blob = await prepareExport(output, format, isPreview);
+    drawComposition(context, isScreenshot);
+    const blob = await encode(output, format, .94);
     const filename = format === "jpeg" ? "jpg" : "png";
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `line-today-${isPreview ? "preview" : "asset"}.${filename}`;
+    link.download = `line-today-${isScreenshot ? "screenshot" : "preview"}.${filename}`;
     document.body.append(link);
     link.click();
     link.remove();
@@ -496,11 +534,26 @@ byId("zoom").addEventListener("input", (event) => {
 byId("reset-crop").addEventListener("click", resetCrop);
 byId("copy-text").addEventListener("click", copyText);
 byId("card-mode").addEventListener("click", () => setMode("card"));
-byId("asset-mode").addEventListener("click", () => setMode("asset"));
+byId("screenshot-mode").addEventListener("click", () => setMode("screenshot"));
 for (const id of ["show-safe", "mute", "button-color"]) byId(id).addEventListener("input", requestDraw);
-byId("save-image").addEventListener("click", () => saveImage(false));
-byId("save-preview").addEventListener("click", () => saveImage(true));
-fontsReady = document.fonts.load('900 44px "Noto Template"').catch(() => []).then(requestDraw);
+byId("save-screenshot").addEventListener("click", () => saveImage(true));
+byId("save-preview").addEventListener("click", () => saveImage(false));
+const fontsReady = document.fonts.load('700 43px "Source Han Sans TW"', "廣告")
+  .catch(() => [])
+  .then((faces) => {
+    cardFontLoaded = faces.length > 0;
+    if (!cardFontLoaded) setStatus("思源黑體載入失敗，請重新整理後再試。", true);
+    requestDraw();
+    return cardFontLoaded;
+  });
+const screenshotReady = loadImage("./assets/screenshot-frame.png").then((image) => {
+  screenshotFrame = image;
+  requestDraw();
+  return true;
+}).catch(() => {
+  setStatus("螢幕截圖底圖載入失敗，請重新整理後再試。", true);
+  return false;
+});
 loadImage("./assets/demo.jpg").then((image) => {
   if (!state.image) state.image = image;
   requestDraw();

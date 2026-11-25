@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <meta name="description" content="上傳主圖、調整裁切與文案，預覽 LINE TODAY「看看」廣告卡片並下載圖片。">
+  <meta name="description" content="上傳主圖、調整裁切與文案，預覽 LINE TODAY「看看」廣告卡片並下載螢幕截圖。">
   <title>LINE TODAY 上刊圖模板</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="./styles.css">
@@ -29,7 +29,6 @@
       <section class="editor-section" aria-labelledby="image-title">
         <div class="section-heading">
           <h2 id="image-title">廣告主圖</h2>
-          <span class="dimension">1080 × 1920</span>
         </div>
         <div class="upload" id="drop-image">
           <div class="upload-content">
@@ -87,12 +86,12 @@
       </section>
 
       <section class="editor-section export" aria-labelledby="export-title">
-        <div class="section-heading"><h2 id="export-title">下載圖片</h2><label class="format">格式 <select id="format"><option value="jpeg">JPG</option><option value="png">PNG</option></select></label></div>
+        <div class="section-heading"><h2 id="export-title">下載圖片</h2><label class="format">卡片格式 <select id="format"><option value="jpeg">JPG</option><option value="png">PNG</option></select></label></div>
         <div class="export-actions">
-          <button type="button" class="button button-primary" id="save-image">下載進稿圖 <span aria-hidden="true">↓</span></button>
+          <button type="button" class="button button-primary" id="save-screenshot">下載螢幕截圖 <span aria-hidden="true">↓</span></button>
           <button type="button" class="button button-light" id="save-preview">下載卡片示意圖 <span aria-hidden="true">↓</span></button>
         </div>
-        <p class="export-note">進稿圖是 9:16 主圖。示意圖會保留品牌與文案。</p>
+        <p class="export-note">螢幕截圖固定下載為 PNG（869 × 1884）。</p>
         <p id="status" class="status" role="status" aria-live="polite"></p>
       </section>
     </section>
@@ -102,13 +101,12 @@
         <div><p class="preview-label">LINE TODAY</p><h2 id="preview-title">即時預覽</h2></div>
         <div class="mode" role="group" aria-label="預覽模式">
           <button type="button" id="card-mode" aria-pressed="true">廣告卡片</button>
-          <button type="button" id="asset-mode" aria-pressed="false">9:16 主圖</button>
+          <button type="button" id="screenshot-mode" aria-pressed="false">螢幕截圖</button>
         </div>
       </div>
       <div class="preview-stage">
         <div class="art-frame" id="art-frame">
           <canvas id="preview-canvas" width="798" height="1192" tabindex="0" role="img" aria-describedby="preview-help" aria-label="廣告卡片預覽">廣告素材預覽</canvas>
-          <div id="safe-overlay" class="safe-overlay" aria-hidden="true" hidden></div>
         </div>
       </div>
       <div class="preview-footer">
