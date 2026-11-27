@@ -55,7 +55,7 @@ const state = {
   ...defaultCrop,
   mode: "card",
 };
-let redrawPending = false;
+let redrawRequest = 0;
 let imageRequest = 0;
 let logoRequest = 0;
 let drag = null;
@@ -383,22 +383,42 @@ function drawSafeArea(context, isScreenshot) {
 }
 
 function requestDraw() {
-  if (redrawPending) return;
-  redrawPending = true;
-  requestAnimationFrame(() => {
-    redrawPending = false;
-    previewContext.clearRect(0, 0, canvas.width, canvas.height);
-    const isScreenshot = state.mode === "screenshot";
-    drawComposition(previewContext, isScreenshot);
-    if (byId("show-safe").checked && (!isScreenshot || screenshotFrame)) {
-      drawSafeArea(previewContext, isScreenshot);
-    }
+  if (redrawRequest) return;
+  redrawRequest = requestAnimationFrame(() => {
+    redrawRequest = 0;
+    if (previewContext.isContextLost?.() || cardContext.isContextLost?.()) return;
+    try {
+      previewContext.clearRect(0, 0, canvas.width, canvas.height);
+      const isScreenshot = state.mode === "screenshot";
+      drawComposition(previewContext, isScreenshot);
+      if (byId("show-safe").checked && (!isScreenshot || screenshotFrame)) {
+        drawSafeArea(previewContext, isScreenshot);
+      }
 
-    const logoContext = byId("logo-thumb").getContext("2d");
-    logoContext.clearRect(0, 0, 24, 24);
-    drawLogo(logoContext, 0, 0, 24);
+      const logoContext = byId("logo-thumb").getContext("2d");
+      logoContext.clearRect(0, 0, 24, 24);
+      drawLogo(logoContext, 0, 0, 24);
+      if (byId("status").dataset.previewError) setStatus("");
+    } catch (error) {
+      setStatus(`預覽繪製未完成（${error.message}）。`, true);
+      byId("status").dataset.previewError = "true";
+    }
   });
 }
+
+function restorePreview() {
+  if (document.visibilityState === "hidden") return;
+  // A suspended frame may not run when a mobile browser restores the page.
+  cancelAnimationFrame(redrawRequest);
+  redrawRequest = 0;
+  requestDraw();
+}
+
+window.addEventListener("pageshow", restorePreview);
+window.addEventListener("focus", restorePreview);
+document.addEventListener("visibilitychange", restorePreview);
+canvas.addEventListener("contextrestored", restorePreview);
+cardSurface.addEventListener("contextrestored", restorePreview);
 
 function setMode(mode) {
   state.mode = mode;
@@ -421,6 +441,7 @@ function updateMaterialType() {
 
 function setStatus(text, error = false) {
   const status = byId("status");
+  delete status.dataset.previewError;
   status.dataset.error = String(error);
   status.textContent = text;
 }
