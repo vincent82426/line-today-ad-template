@@ -437,11 +437,13 @@ function syncCropControl(key) {
 function setCropLimits(key, min, max) {
   cropLimits[key] = [min, max];
   const { range, number } = cropControls[key];
+  const fixed = min === max;
   for (const input of [range, number]) {
     if (input?.tagName !== "INPUT") continue;
-    input.min = min;
-    input.max = max;
-    input.disabled = min === max;
+    // A disabled range still needs a span to place its thumb at the midpoint.
+    input.min = fixed && input === range ? min - 1 : min;
+    input.max = fixed && input === range ? max + 1 : max;
+    input.disabled = fixed;
   }
   setCropValue(key, state[key]);
   syncCropControl(key);
