@@ -28,6 +28,11 @@ cardSurface.width = card.width;
 cardSurface.height = card.height;
 const cardContext = cardSurface.getContext("2d", { alpha: false });
 const fields = Object.fromEntries(Object.keys(demo).map((key) => [key, byId(key)]));
+const cropControls = {
+  zoom: { range: byId("zoom"), number: byId("zoom-value") },
+  x: { range: byId("position-x"), number: byId("position-x-value") },
+  y: { range: byId("position-y"), number: byId("position-y-value") },
+};
 const screenshotTime = byId("screenshot-time");
 const screenshotCategories = [
   byId("screenshot-category-first"),
@@ -37,12 +42,11 @@ const segmenter = typeof Intl.Segmenter === "function"
   ? new Intl.Segmenter("zh-Hant", { granularity: "grapheme" })
   : null;
 
+const defaultCrop = { zoom: 100, x: 0, y: 0 };
 const state = {
   image: undefined, // The demo may load until the user chooses or clears an image.
   logo: "demo",
-  zoom: 1,
-  x: 0,
-  y: 0,
+  ...defaultCrop,
   mode: "card",
 };
 let redrawPending = false;
@@ -110,32 +114,29 @@ function clamp(value, low, high) {
   return Math.min(high, Math.max(low, value));
 }
 
-function photoBounds(image, width, height, zoom, x = 0, y = 0, coverHeight = height) {
+function photoBounds(image, width, height, zoom, coverHeight = height) {
   const scale = Math.max(width / image.naturalWidth, coverHeight / image.naturalHeight) * zoom;
   const drawnWidth = image.naturalWidth * scale;
   const drawnHeight = image.naturalHeight * scale;
   return {
-    left: (width - drawnWidth) * (1 - x) / 2,
-    top: (height - drawnHeight) * (1 - y) / 2,
+    left: (width - drawnWidth) / 2,
+    top: (height - drawnHeight) / 2,
     width: drawnWidth,
     height: drawnHeight,
   };
 }
 
-function mainPhotoBounds() {
-  // Preserve the original 9:16 zoom while panning within the visible card.
-  return photoBounds(state.image, asset.width, visibleHeight, state.zoom, state.x, state.y, asset.height);
-}
-
 function fillPhoto(context) {
   context.fillStyle = state.image ? "#fff" : "#274136";
   context.fillRect(0, 0, card.width, card.height);
-  if (!state.image) return;
-  const bounds = mainPhotoBounds();
+  if (!state.image || state.zoom === 0) return;
+  // Fit the original 9:16 area at 100%, then position the image in card pixels.
+  const bounds = photoBounds(state.image, asset.width, visibleHeight, state.zoom / 100, asset.height);
   context.imageSmoothingQuality = "high";
   context.drawImage(
     state.image,
-    bounds.left * cardScale, bounds.top * cardScale,
+    bounds.left * cardScale + Math.round(state.x),
+    bounds.top * cardScale + Math.round(state.y),
     bounds.width * cardScale, bounds.height * cardScale,
   );
 }
@@ -416,12 +417,19 @@ function setStatus(text, error = false) {
   status.textContent = text;
 }
 
+function setCropValue(key, value) {
+  const { range } = cropControls[key];
+  state[key] = clamp(value, Number(range.min), Number(range.max));
+}
+
+function syncCropControl(key) {
+  const { range, number } = cropControls[key];
+  range.value = number.value = Math.round(state[key]);
+}
+
 function resetCrop() {
-  state.zoom = 1;
-  state.x = 0;
-  state.y = 0;
-  byId("zoom").value = "100";
-  byId("zoom-value").value = "100%";
+  Object.assign(state, defaultCrop);
+  for (const key of Object.keys(cropControls)) syncCropControl(key);
   requestDraw();
 }
 
@@ -558,13 +566,12 @@ function updateCopy() {
 }
 
 function moveByPixels(dx, dy) {
-  if (!state.image) return;
-  const bounds = mainPhotoBounds();
-  const pixelRatio = canvas.width / (canvas.clientWidth * cardScale);
-  const availableX = bounds.width - asset.width;
-  const availableY = bounds.height - visibleHeight;
-  if (availableX > .01) state.x = clamp(state.x + dx * pixelRatio * 2 / availableX, -1, 1);
-  if (availableY > .01) state.y = clamp(state.y + dy * pixelRatio * 2 / availableY, -1, 1);
+  if (!state.image || state.zoom === 0) return;
+  const pixelRatio = canvas.width / canvas.getBoundingClientRect().width;
+  setCropValue("x", state.x + dx * pixelRatio);
+  setCropValue("y", state.y + dy * pixelRatio);
+  syncCropControl("x");
+  syncCropControl("y");
   requestDraw();
 }
 
@@ -703,11 +710,23 @@ byId("remove-logo").addEventListener("click", () => {
   byId("logo-action").textContent = "上傳";
   requestDraw();
 });
-byId("zoom").addEventListener("input", (event) => {
-  state.zoom = Number(event.target.value) / 100;
-  byId("zoom-value").value = `${event.target.value}%`;
-  requestDraw();
-});
+for (const [key, { range, number }] of Object.entries(cropControls)) {
+  range.addEventListener("input", () => {
+    state[key] = range.valueAsNumber;
+    number.value = range.value;
+    requestDraw();
+  });
+  number.addEventListener("input", () => {
+    if (!Number.isFinite(number.valueAsNumber)) return;
+    setCropValue(key, Math.round(number.valueAsNumber));
+    range.value = state[key];
+    requestDraw();
+  });
+  number.addEventListener("blur", () => syncCropControl(key));
+  number.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") syncCropControl(key);
+  });
+}
 byId("reset-crop").addEventListener("click", resetCrop);
 byId("copy-text").addEventListener("click", copyText);
 byId("card-mode").addEventListener("click", () => setMode("card"));

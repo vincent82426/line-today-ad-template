@@ -7,8 +7,8 @@
   <meta name="description" content="上傳主圖、調整裁切與文案，預覽 LINE TODAY「看看」廣告卡片並下載螢幕截圖。">
   <title>LINE TODAY 上刊圖模板</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./styles.css?v=8">
-  <script src="./app.js?v=11" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=9">
+  <script src="./app.js?v=12" defer></script>
 </head>
 <body>
   <header class="masthead">
@@ -51,9 +51,30 @@
           </div>
         </div>
         <div class="crop">
-          <div class="crop-label"><label for="zoom">縮放</label><output id="zoom-value" for="zoom">100%</output></div>
-          <input id="zoom" type="range" min="100" max="300" step="1" value="100">
-          <button id="reset-crop" class="text-button" type="button">重設裁切</button>
+          <div class="crop-row">
+            <label for="zoom-value">縮放</label>
+            <input id="zoom" type="range" min="0" max="100" step="1" value="100" aria-label="縮放拉桿（百分比）">
+            <div class="crop-percent">
+              <input class="crop-value" id="zoom-value" type="number" min="0" max="100" step="1" value="100" inputmode="numeric" aria-label="縮放百分比">
+              <span aria-hidden="true">%</span>
+            </div>
+          </div>
+          <div class="crop-heading">
+            <span id="position-label">位置</span>
+            <button id="reset-crop" class="text-button" type="button">重設裁切</button>
+          </div>
+          <div class="crop-axes" role="group" aria-labelledby="position-label">
+            <div class="crop-row">
+              <label for="position-x-value">X</label>
+              <input id="position-x" type="range" min="-399" max="399" step="1" value="0" aria-label="X 軸位置拉桿（像素）">
+              <input class="crop-value" id="position-x-value" type="number" min="-399" max="399" step="1" value="0" aria-label="X 軸位置（像素）">
+            </div>
+            <div class="crop-row">
+              <label for="position-y-value">Y</label>
+              <input id="position-y" type="range" min="-596" max="596" step="1" value="0" aria-label="Y 軸位置拉桿（像素）">
+              <input class="crop-value" id="position-y-value" type="number" min="-596" max="596" step="1" value="0" aria-label="Y 軸位置（像素）">
+            </div>
+          </div>
         </div>
       </section>
 
