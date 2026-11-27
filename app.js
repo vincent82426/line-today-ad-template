@@ -29,9 +29,9 @@ cardSurface.height = card.height;
 const cardContext = cardSurface.getContext("2d", { alpha: false });
 const fields = Object.fromEntries(Object.keys(demo).map((key) => [key, byId(key)]));
 const cropControls = {
-  zoom: { range: byId("zoom"), number: byId("zoom-value") },
-  x: { range: byId("position-x"), number: byId("position-x-value") },
-  y: { range: byId("position-y"), number: byId("position-y-value") },
+  zoom: { range: byId("zoom"), number: byId("zoom-value"), bounds: [0, 100] },
+  x: { range: byId("position-x"), number: byId("position-x-value"), bounds: [-card.width / 2, card.width / 2] },
+  y: { range: byId("position-y"), number: byId("position-y-value"), bounds: [-card.height / 2, card.height / 2] },
 };
 const screenshotTime = byId("screenshot-time");
 const screenshotCategories = [
@@ -218,7 +218,7 @@ function drawMute(context) {
 
 function drawCard(context) {
   const { width, height } = card;
-  const showMute = materialType.value === "video" && muteToggle.checked;
+  const showMute = materialType?.value !== "image" && (muteToggle?.checked ?? true);
   context.save();
   fillPhoto(context);
 
@@ -407,7 +407,7 @@ function setMode(mode) {
 }
 
 function updateMaterialType() {
-  muteToggle.disabled = materialType.value === "image";
+  if (muteToggle) muteToggle.disabled = materialType?.value === "image";
   requestDraw();
 }
 
@@ -418,13 +418,17 @@ function setStatus(text, error = false) {
 }
 
 function setCropValue(key, value) {
-  const { range } = cropControls[key];
-  state[key] = clamp(value, Number(range.min), Number(range.max));
+  const { range, bounds } = cropControls[key];
+  const [min, max] = range ? [Number(range.min), Number(range.max)] : bounds;
+  state[key] = clamp(value, min, max);
 }
 
 function syncCropControl(key) {
   const { range, number } = cropControls[key];
-  range.value = number.value = Math.round(state[key]);
+  const value = Math.round(state[key]);
+  // A cached page may still have the old zoom output and no position inputs.
+  if (range) range.value = value;
+  if (number) number.value = number.tagName === "OUTPUT" ? `${value}%` : value;
 }
 
 function resetCrop() {
@@ -484,7 +488,7 @@ function prepareScreenshotClock() {
   return clockFontReady;
 }
 
-function setMainImage(image, filename = "") {
+function setMainImage(image, filename = "", { keepCrop = false } = {}) {
   state.image = image;
   const name = byId("image-name");
   name.textContent = filename || (image ? "示範主圖" : "尚未選擇圖片");
@@ -494,7 +498,30 @@ function setMainImage(image, filename = "") {
     : "可拖曳 JPG、PNG 或 WebP 到這裡";
   // The previous HTML can still be cached without the new remove button.
   if (removeImageButton) removeImageButton.hidden = !image;
-  resetCrop();
+  if (keepCrop) requestDraw();
+  else resetCrop();
+}
+
+function loadDemoPhoto() {
+  let thumbnail;
+  const thumbnailReady = loadImage("./assets/demo-preview.jpg").then((image) => {
+    if (state.image !== undefined) return;
+    thumbnail = image;
+    setMainImage(image, "", { keepCrop: true });
+  }).catch(() => {});
+
+  loadImage("./assets/demo.jpg").then((image) => {
+    // A late upgrade applies only while the sample still owns the preview.
+    if (state.image === undefined || state.image === thumbnail) {
+      setMainImage(image, "", { keepCrop: true });
+    }
+  }).catch(async () => {
+    await thumbnailReady;
+    if (state.image === undefined) {
+      setMainImage(null);
+      setStatus("示範圖片未載入。你仍可上傳自己的主圖。", true);
+    }
+  });
 }
 
 async function handleImage(file, target) {
@@ -711,15 +738,16 @@ byId("remove-logo").addEventListener("click", () => {
   requestDraw();
 });
 for (const [key, { range, number }] of Object.entries(cropControls)) {
-  range.addEventListener("input", () => {
+  range?.addEventListener("input", () => {
     state[key] = range.valueAsNumber;
-    number.value = range.value;
+    syncCropControl(key);
     requestDraw();
   });
+  if (number?.type !== "number") continue;
   number.addEventListener("input", () => {
     if (!Number.isFinite(number.valueAsNumber)) return;
     setCropValue(key, Math.round(number.valueAsNumber));
-    range.value = state[key];
+    if (range) range.value = state[key];
     requestDraw();
   });
   number.addEventListener("blur", () => syncCropControl(key));
@@ -741,8 +769,8 @@ for (const field of [screenshotTime, ...screenshotCategories]) {
     requestDraw();
   });
 }
-materialType.addEventListener("change", updateMaterialType);
-for (const control of [byId("show-safe"), muteToggle, byId("button-color")]) control.addEventListener("input", requestDraw);
+materialType?.addEventListener("change", updateMaterialType);
+for (const control of [byId("show-safe"), muteToggle, byId("button-color")]) control?.addEventListener("input", requestDraw);
 byId("save-screenshot").addEventListener("click", () => saveImage(true));
 byId("save-preview").addEventListener("click", () => saveImage(false));
 const fontsReady = loadCardFonts();
@@ -754,14 +782,7 @@ const screenshotReady = loadImage("./assets/screenshot-frame.png").then((image) 
   setStatus("螢幕截圖底圖載入失敗，請重新整理後再試。", true);
   return false;
 });
-loadImage("./assets/demo.jpg").then((image) => {
-  if (state.image === undefined) setMainImage(image);
-}).catch(() => {
-  if (state.image === undefined) {
-    setMainImage(null);
-    setStatus("示範圖片未載入。你仍可上傳自己的主圖。", true);
-  }
-});
+loadDemoPhoto();
 setMode("card");
 updateMaterialType();
 updateCopy();
