@@ -58,7 +58,8 @@ const state = {
 let redrawRequest = 0;
 let imageRequest = 0;
 let logoRequest = 0;
-let drag = null;
+const pointers = new Map();
+let gesture = null;
 let screenshotFrame = null;
 let clockFontReady;
 
@@ -408,6 +409,7 @@ function requestDraw() {
 
 function restorePreview() {
   if (document.visibilityState === "hidden") return;
+  clearGesture();
   // A suspended frame may not run when a mobile browser restores the page.
   cancelAnimationFrame(redrawRequest);
   redrawRequest = 0;
@@ -421,6 +423,7 @@ canvas.addEventListener("contextrestored", restorePreview);
 cardSurface.addEventListener("contextrestored", restorePreview);
 
 function setMode(mode) {
+  clearGesture();
   state.mode = mode;
   const isCard = mode === "card";
   const size = isCard ? card : screenshot;
@@ -500,6 +503,7 @@ function applyCropInput(key, value) {
 }
 
 function resetCrop() {
+  clearGesture();
   Object.assign(state, defaultCrop);
   updateCropLimits();
 }
@@ -669,8 +673,40 @@ function moveByPixels(dx, dy) {
   requestDraw();
 }
 
+function measureGesture() {
+  const [first, second = first] = pointers.values();
+  const bounds = canvas.getBoundingClientRect();
+  const pixelRatio = canvas.width / bounds.width;
+  const isScreenshot = state.mode === "screenshot";
+  return {
+    x: ((first.x + second.x) / 2 - bounds.left) * pixelRatio
+      - (isScreenshot ? screenshot.cardX : 0) - card.width / 2,
+    y: ((first.y + second.y) / 2 - bounds.top) * pixelRatio
+      - (isScreenshot ? screenshot.cardY : 0) - card.height / 2,
+    distance: Math.hypot(first.x - second.x, first.y - second.y),
+  };
+}
+
+function rebaseGesture() {
+  gesture = pointers.size ? {
+    ...measureGesture(),
+    zoom: state.zoom,
+    imageX: state.x,
+    imageY: state.y,
+  } : null;
+}
+
+function clearGesture() {
+  for (const id of pointers.keys()) {
+    if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
+  }
+  pointers.clear();
+  gesture = null;
+}
+
 canvas.addEventListener("pointerdown", (event) => {
-  if (!event.isPrimary || event.button !== 0) return;
+  if (!state.image || event.button !== 0 || pointers.size >= 2) return;
+  if (!event.isPrimary && event.pointerType !== "touch") return;
   if (state.mode === "screenshot") {
     const bounds = canvas.getBoundingClientRect();
     const x = (event.clientX - bounds.left) * screenshot.width / bounds.width;
@@ -678,16 +714,35 @@ canvas.addEventListener("pointerdown", (event) => {
     if (x < screenshot.cardX || x >= screenshot.cardX + card.width ||
         y < screenshot.cardY || y >= screenshot.cardY + card.height) return;
   }
-  drag = { id: event.pointerId, x: event.clientX, y: event.clientY };
+  pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
   canvas.setPointerCapture(event.pointerId);
+  rebaseGesture();
 });
 canvas.addEventListener("pointermove", (event) => {
-  if (drag?.id !== event.pointerId) return;
-  moveByPixels(event.clientX - drag.x, event.clientY - drag.y);
-  drag.x = event.clientX;
-  drag.y = event.clientY;
+  const previous = pointers.get(event.pointerId);
+  if (!previous) return;
+  pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  if (pointers.size === 1) {
+    moveByPixels(event.clientX - previous.x, event.clientY - previous.y);
+    return;
+  }
+  const current = measureGesture();
+  if (!gesture || gesture.distance < 1) {
+    rebaseGesture();
+    return;
+  }
+  applyCropInput("zoom", Math.round(gesture.zoom * current.distance / gesture.distance));
+  const ratio = state.zoom / gesture.zoom;
+  // Keep the same image point beneath the midpoint of the two fingers.
+  setCropValue("x", current.x + (gesture.imageX - gesture.x) * ratio);
+  setCropValue("y", current.y + (gesture.imageY - gesture.y) * ratio);
+  for (const key of Object.keys(cropControls)) syncCropControl(key);
 });
-canvas.addEventListener("lostpointercapture", () => { drag = null; });
+for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+  canvas.addEventListener(type, (event) => {
+    if (pointers.delete(event.pointerId)) rebaseGesture();
+  });
+}
 canvas.addEventListener("keydown", (event) => {
   const directions = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
   const direction = directions[event.key];

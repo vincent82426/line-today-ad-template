@@ -46,10 +46,7 @@ a { color: inherit; }
 [hidden] { display: none !important; }
 .masthead { border-bottom: 1px solid var(--border); }
 .masthead-inner, .workspace, .site-footer { width: min(1280px, calc(100% - 96px)); margin-inline: auto; }
-.masthead-inner { display: flex; align-items: center; justify-content: space-between; min-height: 67px; gap: 12px; }
-.wordmark { display: flex; align-items: center; gap: 10px; font-weight: 750; font-size: 15px; letter-spacing: .035em; }
-.mark { background: var(--forest); width: 33px; height: 33px; border-radius: 9px; display: grid; place-items: center; }
-.mark::before { content: ""; width: 12px; height: 15px; border: 2px solid var(--lime); border-radius: 3px; transform: rotate(-12deg); box-shadow: 3px 3px 0 -1px var(--forest), 4px 4px 0 -1px var(--lime); }
+.masthead-inner { display: flex; align-items: center; justify-content: flex-end; min-height: 67px; gap: 12px; }
 .spec-link { font-size: 13px; font-weight: 600; text-decoration: none; color: var(--muted); }
 .spec-link:hover { text-decoration: underline; }
 .workspace { display: grid; grid-template-columns: minmax(0, .87fr) minmax(0, 1.13fr); gap: clamp(28px, 5vw, 80px); padding-top: 32px; align-items: start; }
