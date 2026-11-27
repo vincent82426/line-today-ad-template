@@ -8,8 +8,8 @@
   <title>LINE TODAY 上刊圖模板</title>
   <link rel="icon" href="data:,">
   <link rel="preload" as="image" href="./assets/demo-preview.jpg">
-  <link rel="stylesheet" href="./styles.css?v=9">
-  <script src="./app.js?v=13" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=10">
+  <script src="./app.js?v=14" defer></script>
 </head>
 <body>
   <header class="masthead">
@@ -54,12 +54,13 @@
         <div class="crop">
           <div class="crop-row">
             <label for="zoom-value">縮放</label>
-            <input id="zoom" type="range" min="0" max="100" step="1" value="100" aria-label="縮放拉桿（百分比）">
+            <input id="zoom" type="range" min="0" max="100" step="1" value="100" aria-label="縮放拉桿（百分比）" aria-describedby="zoom-limit">
             <div class="crop-percent">
-              <input class="crop-value" id="zoom-value" type="number" min="0" max="100" step="1" value="100" inputmode="numeric" aria-label="縮放百分比">
+              <input class="crop-value" id="zoom-value" type="number" min="0" max="100" step="1" value="100" inputmode="numeric" aria-label="縮放百分比" aria-describedby="zoom-limit">
               <span aria-hidden="true">%</span>
             </div>
           </div>
+          <p class="crop-note" id="zoom-limit" hidden></p>
           <div class="crop-heading">
             <span id="position-label">位置</span>
             <button id="reset-crop" class="text-button" type="button">重設裁切</button>
@@ -67,13 +68,13 @@
           <div class="crop-axes" role="group" aria-labelledby="position-label">
             <div class="crop-row">
               <label for="position-x-value">X</label>
-              <input id="position-x" type="range" min="-399" max="399" step="1" value="0" aria-label="X 軸位置拉桿（像素）">
-              <input class="crop-value" id="position-x-value" type="number" min="-399" max="399" step="1" value="0" aria-label="X 軸位置（像素）">
+              <input id="position-x" type="range" min="0" max="0" step="1" value="0" aria-label="X 軸位置拉桿（像素）" disabled>
+              <input class="crop-value" id="position-x-value" type="number" min="0" max="0" step="1" value="0" aria-label="X 軸位置（像素）" disabled>
             </div>
             <div class="crop-row">
               <label for="position-y-value">Y</label>
-              <input id="position-y" type="range" min="-596" max="596" step="1" value="0" aria-label="Y 軸位置拉桿（像素）">
-              <input class="crop-value" id="position-y-value" type="number" min="-596" max="596" step="1" value="0" aria-label="Y 軸位置（像素）">
+              <input id="position-y" type="range" min="0" max="0" step="1" value="0" aria-label="Y 軸位置拉桿（像素）" disabled>
+              <input class="crop-value" id="position-y-value" type="number" min="0" max="0" step="1" value="0" aria-label="Y 軸位置（像素）" disabled>
             </div>
           </div>
         </div>

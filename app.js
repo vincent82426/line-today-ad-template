@@ -29,10 +29,13 @@ cardSurface.height = card.height;
 const cardContext = cardSurface.getContext("2d", { alpha: false });
 const fields = Object.fromEntries(Object.keys(demo).map((key) => [key, byId(key)]));
 const cropControls = {
-  zoom: { range: byId("zoom"), number: byId("zoom-value"), bounds: [0, 100] },
-  x: { range: byId("position-x"), number: byId("position-x-value"), bounds: [-card.width / 2, card.width / 2] },
-  y: { range: byId("position-y"), number: byId("position-y-value"), bounds: [-card.height / 2, card.height / 2] },
+  zoom: { range: byId("zoom"), number: byId("zoom-value") },
+  x: { range: byId("position-x"), number: byId("position-x-value") },
+  y: { range: byId("position-y"), number: byId("position-y-value") },
 };
+const zoomRange = [Number(cropControls.zoom.range?.min ?? 0), Number(cropControls.zoom.range?.max ?? 100)];
+const cropLimits = { zoom: zoomRange, x: [0, 0], y: [0, 0] };
+const zoomLimitNote = byId("zoom-limit");
 const screenshotTime = byId("screenshot-time");
 const screenshotCategories = [
   byId("screenshot-category-first"),
@@ -126,18 +129,20 @@ function photoBounds(image, width, height, zoom, coverHeight = height) {
   };
 }
 
+function mainPhotoBounds(zoom = state.zoom) {
+  return photoBounds(state.image, card.width, card.height, zoom / 100, asset.height * cardScale);
+}
+
 function fillPhoto(context) {
   context.fillStyle = state.image ? "#fff" : "#274136";
   context.fillRect(0, 0, card.width, card.height);
-  if (!state.image || state.zoom === 0) return;
-  // Fit the original 9:16 area at 100%, then position the image in card pixels.
-  const bounds = photoBounds(state.image, asset.width, visibleHeight, state.zoom / 100, asset.height);
+  if (!state.image) return;
+  const bounds = mainPhotoBounds();
   context.imageSmoothingQuality = "high";
   context.drawImage(
     state.image,
-    bounds.left * cardScale + Math.round(state.x),
-    bounds.top * cardScale + Math.round(state.y),
-    bounds.width * cardScale, bounds.height * cardScale,
+    bounds.left + Math.round(state.x), bounds.top + Math.round(state.y),
+    bounds.width, bounds.height,
   );
 }
 
@@ -418,9 +423,7 @@ function setStatus(text, error = false) {
 }
 
 function setCropValue(key, value) {
-  const { range, bounds } = cropControls[key];
-  const [min, max] = range ? [Number(range.min), Number(range.max)] : bounds;
-  state[key] = clamp(value, min, max);
+  state[key] = clamp(value, ...cropLimits[key]);
 }
 
 function syncCropControl(key) {
@@ -431,10 +434,53 @@ function syncCropControl(key) {
   if (number) number.value = number.tagName === "OUTPUT" ? `${value}%` : value;
 }
 
+function setCropLimits(key, min, max) {
+  cropLimits[key] = [min, max];
+  const { range, number } = cropControls[key];
+  for (const input of [range, number]) {
+    if (input?.tagName !== "INPUT") continue;
+    input.min = min;
+    input.max = max;
+    input.disabled = min === max;
+  }
+  setCropValue(key, state[key]);
+  syncCropControl(key);
+}
+
+function updatePositionLimits() {
+  const { width, height } = state.image ? mainPhotoBounds() : card;
+  // Round inward so the final whole-pixel offsets still cover the card.
+  const x = Math.floor(Math.max(0, (width - card.width) / 2));
+  const y = Math.floor(Math.max(0, (height - card.height) / 2));
+  setCropLimits("x", -x, x);
+  setCropLimits("y", -y, y);
+}
+
+function updateCropLimits() {
+  let [min, max] = zoomRange;
+  if (state.image) {
+    const { width, height } = mainPhotoBounds(100);
+    const cover = Math.max(card.width / width, card.height / height);
+    min = Math.max(min, Math.ceil(Math.min(1, cover) * 100));
+  }
+  setCropLimits("zoom", min, max);
+  updatePositionLimits();
+  if (zoomLimitNote) {
+    zoomLimitNote.hidden = !state.image;
+    zoomLimitNote.textContent = state.image ? `滿版所需最低縮放為 ${min}%。` : "";
+  }
+  requestDraw();
+}
+
+function applyCropInput(key, value) {
+  setCropValue(key, value);
+  if (key === "zoom") updatePositionLimits();
+  requestDraw();
+}
+
 function resetCrop() {
   Object.assign(state, defaultCrop);
-  for (const key of Object.keys(cropControls)) syncCropControl(key);
-  requestDraw();
+  updateCropLimits();
 }
 
 function loadImage(url) {
@@ -498,7 +544,7 @@ function setMainImage(image, filename = "", { keepCrop = false } = {}) {
     : "可拖曳 JPG、PNG 或 WebP 到這裡";
   // The previous HTML can still be cached without the new remove button.
   if (removeImageButton) removeImageButton.hidden = !image;
-  if (keepCrop) requestDraw();
+  if (keepCrop) updateCropLimits();
   else resetCrop();
 }
 
@@ -593,7 +639,7 @@ function updateCopy() {
 }
 
 function moveByPixels(dx, dy) {
-  if (!state.image || state.zoom === 0) return;
+  if (!state.image) return;
   const pixelRatio = canvas.width / canvas.getBoundingClientRect().width;
   setCropValue("x", state.x + dx * pixelRatio);
   setCropValue("y", state.y + dy * pixelRatio);
@@ -739,16 +785,14 @@ byId("remove-logo").addEventListener("click", () => {
 });
 for (const [key, { range, number }] of Object.entries(cropControls)) {
   range?.addEventListener("input", () => {
-    state[key] = range.valueAsNumber;
+    applyCropInput(key, range.valueAsNumber);
     syncCropControl(key);
-    requestDraw();
   });
   if (number?.type !== "number") continue;
   number.addEventListener("input", () => {
     if (!Number.isFinite(number.valueAsNumber)) return;
-    setCropValue(key, Math.round(number.valueAsNumber));
+    applyCropInput(key, Math.round(number.valueAsNumber));
     if (range) range.value = state[key];
-    requestDraw();
   });
   number.addEventListener("blur", () => syncCropControl(key));
   number.addEventListener("keydown", (event) => {
@@ -783,6 +827,7 @@ const screenshotReady = loadImage("./assets/screenshot-frame.png").then((image) 
   return false;
 });
 loadDemoPhoto();
+updateCropLimits();
 setMode("card");
 updateMaterialType();
 updateCopy();
