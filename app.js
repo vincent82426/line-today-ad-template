@@ -870,9 +870,13 @@ for (const [key, { range, number }] of Object.entries(cropControls)) {
     applyCropInput(key, Math.round(number.valueAsNumber));
     if (range) range.value = state[key];
   });
-  number.addEventListener("blur", () => syncCropControl(key));
+  const commitNumber = () => {
+    if (number.value === "") applyCropInput(key, defaultCrop[key]);
+    syncCropControl(key);
+  };
+  number.addEventListener("blur", commitNumber);
   number.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") syncCropControl(key);
+    if (event.key === "Enter") commitNumber();
   });
 }
 byId("reset-crop").addEventListener("click", resetCrop);
