@@ -33,7 +33,7 @@ const cropControls = {
   x: { range: byId("position-x"), number: byId("position-x-value") },
   y: { range: byId("position-y"), number: byId("position-y-value") },
 };
-const zoomRange = [Number(cropControls.zoom.range?.min ?? 0), Number(cropControls.zoom.range?.max ?? 100)];
+const zoomRange = [100, 300];
 const cropLimits = { zoom: zoomRange, x: [0, 0], y: [0, 0] };
 const zoomLimitNote = byId("zoom-limit");
 const screenshotTime = byId("screenshot-time");
@@ -45,7 +45,7 @@ const segmenter = typeof Intl.Segmenter === "function"
   ? new Intl.Segmenter("zh-Hant", { granularity: "grapheme" })
   : null;
 
-const defaultCrop = { zoom: 100, x: 0, y: 0 };
+const defaultCrop = { zoom: zoomRange[0], x: 0, y: 0 };
 const state = {
   image: undefined, // The demo may load until the user chooses or clears an image.
   logo: "demo",
@@ -117,8 +117,8 @@ function clamp(value, low, high) {
   return Math.min(high, Math.max(low, value));
 }
 
-function photoBounds(image, width, height, zoom, coverHeight = height) {
-  const scale = Math.max(width / image.naturalWidth, coverHeight / image.naturalHeight) * zoom;
+function photoBounds(image, width, height, zoom) {
+  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight) * zoom;
   const drawnWidth = image.naturalWidth * scale;
   const drawnHeight = image.naturalHeight * scale;
   return {
@@ -129,8 +129,8 @@ function photoBounds(image, width, height, zoom, coverHeight = height) {
   };
 }
 
-function mainPhotoBounds(zoom = state.zoom) {
-  return photoBounds(state.image, card.width, card.height, zoom / 100, asset.height * cardScale);
+function mainPhotoBounds() {
+  return photoBounds(state.image, card.width, card.height, state.zoom / 100);
 }
 
 function fillPhoto(context) {
@@ -457,17 +457,12 @@ function updatePositionLimits() {
 }
 
 function updateCropLimits() {
-  let [min, max] = zoomRange;
-  if (state.image) {
-    const { width, height } = mainPhotoBounds(100);
-    const cover = Math.max(card.width / width, card.height / height);
-    min = Math.max(min, Math.ceil(Math.min(1, cover) * 100));
-  }
+  const [min, max] = zoomRange;
   setCropLimits("zoom", min, max);
   updatePositionLimits();
   if (zoomLimitNote) {
     zoomLimitNote.hidden = !state.image;
-    zoomLimitNote.textContent = state.image ? `滿版所需最低縮放為 ${min}%。` : "";
+    zoomLimitNote.textContent = `${min}% 為滿版，可放大至 ${max}%。`;
   }
   requestDraw();
 }
